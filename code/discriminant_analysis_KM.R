@@ -1,6 +1,7 @@
 #This is Kevin McNeil's example code
 ##############Discriminant Analysis###########
 #data loading
+# JTP TESTING GIT UPLOAD
 
 datamap = read.table("clipboard", header=T, sep="\t")##pull in data from clipboard
 
