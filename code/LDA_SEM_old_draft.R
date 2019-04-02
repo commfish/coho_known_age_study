@@ -8,6 +8,7 @@ rm(list=ls(all=T))#Remove previous variables.
 
 library(here)
 library(tidyverse)
+library(lubridate)
 
 library(reshape2)
 library(reshape)
@@ -16,16 +17,24 @@ library (dplyr)
 library (MASS)
 library (vegan)
 #Data<- read.csv("H:\\Salmon\\Linear Discriminant Analysis (coho)\\Data\\AL_BR_HS.csv",na.strings="")  #import data from the H drive
-coho_scales <- read.csv(here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE)
-
 Data<- read.csv("data\\AL_BR_HS.csv",na.strings="") 
+
+# Will need this function for converting year correctly
+convyear <- function(x, year=2000){ m <- year(x) %% 100
+  year(x) <- ifelse(m > year %% 100, 1900+m, 2000+m)
+  x
+}
+
+coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE) %>%
+  mutate(Date = ymd(convyear(strptime(Date, format = "%d-%b-%Y", tz="US/Alaska"))))
+  
+
+
 
 
 ######################
 #### JTP SECTION #####
 ######################
-
-
 
 
 A1_JTP <- coho_scales %>% dplyr::select("IMAGENAME":"Comment") %>% # InClude only the first 11 columns
@@ -109,9 +118,28 @@ h <- Dataset[, c(1:11)] #include variables 1-11
 jj <- merge(h,g, by=c("Sample_ID")) #new dataset without plus groups or distance from focus to C2
 rm(A1,A2, a,b,c,e,f,g,h)  
 
-#**************************************************************************************************
 
+#**************************************************************************************************
 #PART II: Summarize data by sample ID, zone, and circuli distance and count
+
+######################
+#### JTP SECTION #####
+######################
+temp2 <- coho_scales_long %>% filter(Zone == 1 | Zone ==2) %>% group_by(Sample_ID, Zone) %>% 
+  summarise(freq = length(Distance), Distance = sum (Distance)) %>% 
+  mutate(Zone = replace(Zone, Zone==1, "Zone1"),
+         Zone = replace(Zone, Zone==2, "Zone2")) %>%
+  rename(value = Distance) 
+
+temp2 %>% dplyr::select(-freq) %>% spread(Zone, value = value) # same as h
+
+
+
+
+
+
+
+
 d["Distance"] <-as.numeric(as.character(d$Distance))
 e<-ddply(d,Sample_ID~Zone,summarise,Distance=sum(Distance))
 f<-ddply(d,Sample_ID~Zone,summarise,freq=length(Distance)) #does not include plus group or distance from focus to C2
