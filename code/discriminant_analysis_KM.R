@@ -3,6 +3,7 @@
 #data loading
 # JTP TESTING GIT UPLOAD
 
+
 datamap = read.table("clipboard", header=T, sep="\t")##pull in data from clipboard
 
 data<-data1[,-c(1,2,7,11)] ##data without unused columns
