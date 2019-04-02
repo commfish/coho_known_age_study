@@ -21,18 +21,17 @@ coho_scales <- read.csv(here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE)
 Data<- read.csv("data\\AL_BR_HS.csv",na.strings="") 
 
 
-#Create a two datasets one row/circuli for the zone and one row/circuli for the circuli distance instead of one row/fish
-Dataset<-subset(Data) 
-a <- Dataset[, c(1:11)] #include variables 1-11
-#b <- Dataset[,seq(12,93, by=2)] #only include Z variables
-# NOTE: JTP: I think Sara's code is supposed to be below. Orig it was as above. Changing to get her result I think
-b <- Dataset[,seq(14,93, by=2)] #only include Z variables
+######################
+#### JTP SECTION #####
+######################
+
+
 
 
 A1_JTP <- coho_scales %>% dplyr::select("IMAGENAME":"Comment") %>% # InClude only the first 11 columns
   bind_cols(coho_scales %>% dplyr::select(starts_with("Z"))) %>% # Select only the Z columns, then put back together
   gather(key = "Variable", value = "Zone", "Z1":"Z41") # turn from wide to long, each row is a zone
-#NOTE: Do we want to drop first 11 cols? 
+
 
 A2_JTP <- coho_scales %>% dplyr::select("IMAGENAME":"Comment") %>% # InClude only the first 11 columns
   bind_cols(coho_scales %>% dplyr::select(-"Comment") %>% dplyr::select(starts_with("C"))) %>% # Select only the C cols, then bind
@@ -43,12 +42,31 @@ test2 <- A2_JTP %>% bind_cols(A1_JTP %>% dplyr::select("Zone", "Variable")) %>%
   # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
   mutate(Distance = ifelse(Age==1 & Zone==1, Distance2,
                         ifelse(Age==2 & Zone<=2, Distance2, NA))) # exclude some distances
-test2 %>% arrange(Sample_ID, Circulus) %>% 
+test2 <- test2 %>% arrange(Sample_ID, Circulus) %>% 
   dplyr::select(-"Distance2") %>% 
-  drop_na("Distance")
+  drop_na("Distance") 
+
+test3 <- test2 %>% dcast(Sample_ID ~ Circulus, value.var = "Distance", fun = sum) %>%
+  select(Sample_ID, num_range("C", range = 3:41)) %>%
+  left_join(test2 %>% dcast(Sample_ID ~ Variable, value.var = "Zone") %>% 
+  select(Sample_ID, num_range("Z", range = 3:41)), by = c("Sample_ID" = "Sample_ID"))
+
 
 # NOTE: NOT the same length dataframe. It appears that melt truncates results to 128000 while gather can handle all 
 
+######################
+######################
+######################
+
+
+
+
+#Create a two datasets one row/circuli for the zone and one row/circuli for the circuli distance instead of one row/fish
+Dataset<-subset(Data) 
+a <- Dataset[, c(1:11)] #include variables 1-11
+#b <- Dataset[,seq(12,93, by=2)] #only include Z variables
+# NOTE: JTP: I think Sara's code is supposed to be below. Orig it was as above. Changing to get her result I think
+b <- Dataset[,seq(14,93, by=2)] #only include Z variables
 
 
 c <- cbind(a,b)
