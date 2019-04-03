@@ -131,10 +131,12 @@ temp2 <- coho_scales_long %>% filter(Zone == 1 | Zone ==2) %>% group_by(Sample_I
          Zone = replace(Zone, Zone==2, "Zone2")) %>%
   rename(value = Distance) 
 
-temp2 %>% dplyr::select(-freq) %>% spread(Zone, value = value) # same as h
-
-
-
+j_JTP <- left_join(temp2 %>% dplyr::select(-freq) %>% spread(Zone, value = value), # same as h
+                   temp2 %>% dplyr::select(-value) %>% rename(value = freq) %>%
+                   spread(Zone, value = value) %>% 
+                   rename(Count_Zone1 = Zone1, Count_Zone2 = Zone2), # same as i
+                   by = c("Sample_ID" = "Sample_ID")) %>%
+  left_join(jj_JTP, by = c("Sample_ID" = "Sample_ID"))
 
 
 
@@ -159,7 +161,11 @@ i<- subset(i, select = -c(Zone1:Zone2))
 j <- merge(h,i, by=c("Sample_ID")) #merge counts of circuli by zone and sum of distance by zones
 j <- merge(j,jj, by=c("Sample_ID")) #new dataset with zone summaries and C1... and Z1...
 rm(e,f,g,h,i)  
-write.csv(j, "H:\\Salmon\\test.csv")
+#write.csv(j, "H:\\Salmon\\test.csv")
+
+
+
+
 #**************************************************************************************************
 #PART III: Calculate step#1 for variables Q32 and Q33
 #VARIABLE Q32
