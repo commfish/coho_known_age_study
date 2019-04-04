@@ -21,23 +21,12 @@ Data<- read.csv("data\\AL_BR_HS.csv",na.strings="")
 
 # Will need this function for converting year correctly
 convyear <- function(x, year=2000){ m <- year(x) %% 100
-<<<<<<< HEAD
-year(x) <- ifelse(m > year %% 100, 1900+m, 2000+m)
-x
-=======
   year(x) <- ifelse(m > year %% 100, 1900+m, 2000+m)
   x
->>>>>>> 15aa7a42b4cbfd016aa11bd2ff9df97c47fa56f9
 }
 
 coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE) %>%
   mutate(Date = ymd(convyear(strptime(Date, format = "%d-%b-%Y", tz="US/Alaska"))))
-<<<<<<< HEAD
-
-=======
-  
->>>>>>> 15aa7a42b4cbfd016aa11bd2ff9df97c47fa56f9
-
 
 
 
@@ -66,11 +55,7 @@ coho_scales_long <- A2_JTP %>% bind_cols(A1_JTP %>% dplyr::select("Zone", "Varia
 jj_JTP <- coho_scales_long %>% dcast(Sample_ID ~ Circulus, value.var = "Distance", fun = sum) %>% # Now that data are correct, turn back to wide
   select(Sample_ID, num_range("C", range = 3:41)) %>% # Grab just the Sample_ID and "C" columns
   left_join(coho_scales_long %>% dcast(Sample_ID ~ Variable, value.var = "Zone") %>% # Join these with the correct wide data...
-<<<<<<< HEAD
-              select(Sample_ID, num_range("Z", range = 3:41)), by = c("Sample_ID" = "Sample_ID")) %>% # ... grabbing just Z cols
-=======
-  select(Sample_ID, num_range("Z", range = 3:41)), by = c("Sample_ID" = "Sample_ID")) %>% # ... grabbing just Z cols
->>>>>>> 15aa7a42b4cbfd016aa11bd2ff9df97c47fa56f9
+            select(Sample_ID, num_range("Z", range = 3:41)), by = c("Sample_ID" = "Sample_ID")) %>% # ... grabbing just Z cols
   left_join(coho_scales %>% dplyr::select("IMAGENAME":"Comment"), by = c("Sample_ID" = "Sample_ID")) %>% # Now merge back w/ header data
   dplyr::select("Sample_ID", "IMAGENAME":"Comment", everything()) # Arrange col order to be as preferred
 #rm(A1_JTP, A2_JTP, coho_scales_long)
@@ -118,11 +103,8 @@ d <- d[!d$Circulus=='C1',] #get rid of C1 and C2 (distance from focus to C1)
 d <- d[!d$Circulus=='C2',] #get rid of C1 and C2 (distance from C2 to C1)
 d <- d[!d$Age==3,] #delete age 3 (not enough samples to analyze)
 d["Distance"]<-ifelse(d$Age==1 & d$Zone==1, d$Distance,
-<<<<<<< HEAD
                       ifelse(d$Age==2 & d$Zone<=2,d$Distance, NA)) #delete plus group
-=======
-                    ifelse(d$Age==2 & d$Zone<=2,d$Distance, NA)) #delete plus group
->>>>>>> 15aa7a42b4cbfd016aa11bd2ff9df97c47fa56f9
+
 d <- d[order(d$Sample_ID, d$Circulus),]
 d<- subset(d, select = -c(Distance2))#delete distance 2 since this is plus growth data
 
@@ -150,13 +132,8 @@ temp2 <- coho_scales_long %>% filter(Zone == 1 | Zone ==2) %>% group_by(Sample_I
 
 j_JTP <- left_join(temp2 %>% dplyr::select(-freq) %>% spread(Zone, value = value), # same as h
                    temp2 %>% dplyr::select(-value) %>% rename(value = freq) %>%
-<<<<<<< HEAD
-                     spread(Zone, value = value) %>% 
-                     rename(Count_Zone1 = Zone1, Count_Zone2 = Zone2), # same as i
-=======
                    spread(Zone, value = value) %>% 
                    rename(Count_Zone1 = Zone1, Count_Zone2 = Zone2), # same as i
->>>>>>> 15aa7a42b4cbfd016aa11bd2ff9df97c47fa56f9
                    by = c("Sample_ID" = "Sample_ID")) %>%
   left_join(jj_JTP, by = c("Sample_ID" = "Sample_ID"))
 
@@ -195,11 +172,7 @@ temp3 <- j_JTP %>% dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value =
   filter(Value != 0, !is.na(Value)) %>% 
   mutate(Circulus = as.numeric(gsub("^C", '', Varr)), Distance = Value) %>% dplyr::select(-Varr, -Value) %>%
   mutate(NCFAZ = ifelse(Age == 1, Count_Zone1,
-<<<<<<< HEAD
-                        ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)),
-=======
          ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)),
->>>>>>> 15aa7a42b4cbfd016aa11bd2ff9df97c47fa56f9
          NCFAZ_adj = ifelse(Age == 1, Count_Zone1 + 2,
                             ifelse(Age == 2, Count_Zone1 + Count_Zone2 + 2, NA)),
          NCFAZ_6 = NCFAZ_adj-5) %>%
@@ -227,15 +200,9 @@ A1["Circulus"] <-gsub("^C", '', A1$variable)
 A1["Distance"] <-A1$value
 A1<- subset(A1, select = -c(variable,value))
 A1["NCFAZ"]<-ifelse(A1$Age==1,A1$Count_Zone1,
-<<<<<<< HEAD
-                    ifelse(A1$Age==2,A1$Count_Zone1+A1$Count_Zone2,NA)) 
-A1["NCFAZ_adj"]<-ifelse(A1$Age==1,A1$Count_Zone1+2,
-                        ifelse(A1$Age==2,A1$Count_Zone1+A1$Count_Zone2+2,NA)) #adjust NCFAZ for focus to C2; data pairs variable includes plus group
-=======
        ifelse(A1$Age==2,A1$Count_Zone1+A1$Count_Zone2,NA)) 
 A1["NCFAZ_adj"]<-ifelse(A1$Age==1,A1$Count_Zone1+2,
                    ifelse(A1$Age==2,A1$Count_Zone1+A1$Count_Zone2+2,NA)) #adjust NCFAZ for focus to C2; data pairs variable includes plus group
->>>>>>> 15aa7a42b4cbfd016aa11bd2ff9df97c47fa56f9
 A1["NCFAZ_6"]<-as.numeric((A1$NCFAZ_adj)-5) #minimum circulus to count
 A1["Circulus"]<-as.numeric(A1$Circulus)
 A1 <- A1[order(A1$Sample_ID, A1$Circulus),]
@@ -467,8 +434,5 @@ Lake<-subset(AL_BR_HS, AL_BR_HS$Location == 'HS'| AL_BR_HS$Location =='AL') #lak
 #dispersion than others, cases will tend to be overclassified in it.
 
 #function betadisper in package vegan
-<<<<<<< HEAD
 #MASS packake LDA and QDA or cluster analysis?
-=======
-#MASS packake LDA and QDA or cluster analysis?
->>>>>>> 15aa7a42b4cbfd016aa11bd2ff9df97c47fa56f9
+
