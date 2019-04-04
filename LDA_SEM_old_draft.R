@@ -40,7 +40,7 @@ d <- d[!d$Circulus=='C1',] #get rid of C1 and C2 (distance from focus to C1)
 d <- d[!d$Circulus=='C2',] #get rid of C1 and C2 (distance from C2 to C1)
 d <- d[!d$Age==3,] #delete age 3 (not enough samples to analyze)
 d["Distance"]<-ifelse(d$Age==1 & d$Zone==1, d$Distance,
-                    ifelse(d$Age==2 & d$Zone<=2,d$Distance, NA)) #delete plus group
+                      ifelse(d$Age==2 & d$Zone<=2,d$Distance, NA)) #delete plus group
 d <- d[order(d$Sample_ID, d$Circulus),]
 d<- subset(d, select = -c(Distance2))#delete distance 2 since this is plus growth data
 
@@ -85,9 +85,9 @@ A1["Circulus"] <-gsub("^C", '', A1$variable)
 A1["Distance"] <-A1$value
 A1<- subset(A1, select = -c(variable,value))
 A1["NCFAZ"]<-ifelse(A1$Age==1,A1$Count_Zone1,
-       ifelse(A1$Age==2,A1$Count_Zone1+A1$Count_Zone2,NA)) 
+                    ifelse(A1$Age==2,A1$Count_Zone1+A1$Count_Zone2,NA)) 
 A1["NCFAZ_adj"]<-ifelse(A1$Age==1,A1$Count_Zone1+2,
-                   ifelse(A1$Age==2,A1$Count_Zone1+A1$Count_Zone2+2,NA)) #adjust NCFAZ for focus to C2; data pairs variable includes plus group
+                        ifelse(A1$Age==2,A1$Count_Zone1+A1$Count_Zone2+2,NA)) #adjust NCFAZ for focus to C2; data pairs variable includes plus group
 A1["NCFAZ_6"]<-as.numeric((A1$NCFAZ_adj)-5) #minimum circulus to count
 A1["Circulus"]<-as.numeric(A1$Circulus)
 A1 <- A1[order(A1$Sample_ID, A1$Circulus),]
