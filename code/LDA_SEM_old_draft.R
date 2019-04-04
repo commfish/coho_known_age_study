@@ -9,8 +9,8 @@ rm(list=ls(all=T))#Remove previous variables.
 library(here)
 library(tidyverse)
 library(lubridate)
-
 library(reshape2)
+
 library(reshape)
 library (plyr)
 library (dplyr)
@@ -64,7 +64,7 @@ jj_JTP <- coho_scales_long %>% dcast(Sample_ID ~ Circulus, value.var = "Distance
 
 
 # NOTE: The long dataframe is different slightly than the same length dataframe. It appears that melt truncates results to 128000 while gather can handle all 
-# Runs on just three packages (tidyverse, reshape2, and here). Removing reshape functionality.
+# Runs on just four packages (tidyverse, lubridate, reshape2, and here). Removing reshape functionality.
 
 ######################
 ######################
@@ -168,6 +168,30 @@ rm(e,f,g,h,i)
 
 #**************************************************************************************************
 #PART III: Calculate step#1 for variables Q32 and Q33
+
+temp3 <- j_JTP %>% dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value = "Value", "C3":"C40") %>%
+  filter(Value != 0, !is.na(Value)) %>% 
+  mutate(Circulus = as.numeric(gsub("^C", '', Varr)), Distance = Value) %>% dplyr::select(-Varr, -Value) %>%
+  mutate(NCFAZ = ifelse(Age == 1, Count_Zone1,
+         ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)),
+         NCFAZ_adj = ifelse(Age == 1, Count_Zone1 + 2,
+                            ifelse(Age == 2, Count_Zone1 + Count_Zone2 + 2, NA)),
+         NCFAZ_6 = NCFAZ_adj-5) %>%
+  arrange(Sample_ID, Circulus) %>%
+  mutate(Q32 = ifelse(Circulus >= NCFAZ_6 & Circulus <= NCFAZ_adj, Distance,0)) %>% #count distance if btw NCFAZ_adj & NCFAZ_6)
+  group_by(Sample_ID) %>% summarise(Q32sum = sum(Q32)) #dataset of distance from NCFAZ_adj & NCFAZ_6 
+#Done with A1
+
+
+A1 <- A1[order(A1$Sample_ID, A1$Circulus),]
+A1["Q32"]<-ifelse(A1$Circulus>=A1$NCFAZ_6 & A1$Circulus<=A1$NCFAZ_adj,A1$Distance,0) #count distance if btw NCFAZ_adj & NCFAZ_6
+A1 <- aggregate(A1$Q32, by=list(Sample_ID=A1$Sample_ID), FUN=sum) #
+A1["Q32_sum"]<-A1$x
+A1<- subset(A1, select = -c(x)) 
+
+
+
+
 #VARIABLE Q32
 A1 <- j[, c(1:15, 16:53)] 
 A1 <- melt(A1, id=c(1:15))
