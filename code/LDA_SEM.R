@@ -15,12 +15,15 @@ library (plyr)
 library (dplyr)
 library (MASS)
 library (vegan)
-Data<- read.csv("H:\\Salmon\\Linear Discriminant Analysis (coho)\\Data\\AL_BR_HS.csv",na.strings="")  #import data from the H drive
-#Also located here: S:\Region1Shared-DCF\Research\Salmon\Coho\Coho Scale Data.csv
+#Data<- read.csv("H:\\Salmon\\Linear Discriminant Analysis (coho)\\Data\\AL_BR_HS.csv",na.strings="")  #import data from the H drive
+Data<- read.csv("data\\AL_BR_HS.csv",na.strings="") #Also located here: S:\Region1Shared-DCF\Research\Salmon\Coho\Coho Scale Data.csv
+# JTP fixed the above
 #Create a two datasets one row/circuli for the zone and one row/circuli for the circuli distance instead of one row/fish
 Dataset<-subset(Data) 
 a <- Dataset[, c(1:11)] #include variables 1-11
-b <- Dataset[,seq(12,93, by=2)] #only include Z variables
+#b <- Dataset[,seq(12,93, by=2)] #only include Z variables
+# NOTE: JTP: I think Sara's code is supposed to be below. Orig it was as above. Changing to get her result I think
+b <- Dataset[,seq(14,93, by=2)] #only include Z variables. JTP changed this to col 14
 c <- cbind(a,b)
 A1 <- melt(c, id=c(1:11))
 A1["Zone"] <-as.numeric(A1$value)
@@ -28,7 +31,9 @@ A1<- subset(A1, select = -c(value)) #Dataset1 1 row/zone
 A1<- subset(A1, select = -c(1:11)) #Dataset1 1 row/zone
 
 a <- Dataset[, c(1:11)]
-b <- Dataset[,seq(13,94 , by=2)] #only include C variables
+#b <- Dataset[,seq(13,94 , by=2)] #only include C variables. NOTE: THIS IS THE ORIG SEM
+# NOTE: JTP: I think Sara's code is supposed to be below. Orig it was as above. Changing to get her result I think
+b <- Dataset[,seq(15,93, by=2)] #only include C variables. JTP changed this to col 15 instead of 13
 c<- cbind(a,b)
 A2 <- melt(c, id=c(1:11))
 A2["Circulus"] <-A2$variable
