@@ -7,7 +7,6 @@ library(here)
 library(tidyverse)
 library(lubridate)
 library(reshape2)
-
 library(reshape)
 library (plyr)
 library (dplyr)
@@ -24,29 +23,35 @@ convyear <- function(x, year=2000){ m <- year(x) %% 100
 coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE) %>%
   mutate(Date = ymd(convyear(strptime(Date, format = "%d-%b-%Y", tz="US/Alaska"))))
 
-
-
-A1_JTP <- coho_scales %>% dplyr::select("IMAGENAME":"Comment") %>% # InClude only the first 11 columns
+A1_JTP <- coho_scales %>% 
+  dplyr::select("IMAGENAME":"Comment") %>% # Include only the first 11 columns
   bind_cols(coho_scales %>% dplyr::select(starts_with("Z"))) %>% # Select only the Z columns, then put back together
   gather(key = "Variable", value = "Zone", "Z1":"Z41") # turn from wide to long, each row is a zone
 
-A2_JTP <- coho_scales %>% dplyr::select("IMAGENAME":"Comment") %>% # InClude only the first 11 columns
-  bind_cols(coho_scales %>% dplyr::select(-"Comment") %>% dplyr::select(starts_with("C"))) %>% # Select only the C cols, then bind
+A2_JTP <- coho_scales %>% 
+  dplyr::select("IMAGENAME":"Comment") %>% # InClude only the first 11 columns
+  bind_cols(coho_scales %>% 
+  dplyr::select(-"Comment") %>% 
+  dplyr::select(starts_with("C"))) %>% # Select only the C cols, then bind
   gather(key = "Circulus", value = "Distance2", "C1":"C41") # turn from wide to long, each row is a zone
 
-coho_scales_long <- A2_JTP %>% bind_cols(A1_JTP %>% dplyr::select("Zone", "Variable")) %>%
+coho_scales_long <- A2_JTP %>% 
+  bind_cols(A1_JTP %>% 
+  dplyr::select("Zone", "Variable")) %>%
   filter(Circulus != "C1", Circulus != "C2", Age != 3) %>%
   # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
-  mutate(Distance = ifelse(Age==1 & Zone==1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
-                           ifelse(Age==2 & Zone<=2, Distance2, NA))) %>% 
+  mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
+                           ifelse(Age == 2 & Zone <= 2, Distance2, NA))) %>% 
   arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus 
   dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
   drop_na("Distance") # remove rows with NAs for Distance
 
-jj_JTP <- coho_scales_long %>% dcast(Sample_ID ~ Circulus, value.var = "Distance", fun = sum) %>% # Now that data are correct, turn back to wide
+jj_JTP <- coho_scales_long %>% 
+  dcast(Sample_ID ~ Circulus, value.var = "Distance", fun = sum) %>% # Now that data are correct, turn back to wide
   select(Sample_ID, num_range("C", range = 3:41)) %>% # Grab just the Sample_ID and "C" columns
-  left_join(coho_scales_long %>% dcast(Sample_ID ~ Variable, value.var = "Zone") %>% # Join these with the correct wide data...
-            select(Sample_ID, num_range("Z", range = 3:41)), by = c("Sample_ID" = "Sample_ID")) %>% # ... grabbing just Z cols
+  left_join(coho_scales_long %>% 
+  dcast(Sample_ID ~ Variable, value.var = "Zone") %>% # Join these with the correct wide data...
+  select(Sample_ID, num_range("Z", range = 3:41)), by = c("Sample_ID" = "Sample_ID")) %>% # ... grabbing just Z cols
   left_join(coho_scales %>% dplyr::select("IMAGENAME":"Comment"), by = c("Sample_ID" = "Sample_ID")) %>% # Now merge back w/ header data
   dplyr::select("Sample_ID", "IMAGENAME":"Comment", everything()) # Arrange col order to be as preferred
 #rm(A1_JTP, A2_JTP, coho_scales_long)
