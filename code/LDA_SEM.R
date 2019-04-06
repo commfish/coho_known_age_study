@@ -145,6 +145,10 @@ A1["Circulus"]<-as.numeric(A1$Circulus)
 A1 <- A1[order(A1$Sample_ID, A1$Circulus),]
 A1<-ddply(A1, .(Sample_ID), transform, Cumulative.Sum = cumsum(Distance)) #cumulative sum of distances
 A1["Circuli_SFAZ_0.5"] <-ifelse(A1$Cumulative.Sum<=A1$SFAZ_0.5,1,0) #count if distance is <=SFAZ*0.5
+# SARA LOOK HERE
+View(A1) #Rows 41&42 are different from variable "test4" in file LDA_JTP_DataImport
+# It appears that Circulus 23 & 24 are not included. 
+
 A1 <- aggregate(Circuli_SFAZ_0.5~Sample_ID, A1, FUN=sum, na.action=na.omit) #summarize number of circuli in first half of SFAZ
 #write.csv(A1, "H:\\Salmon\\test1.csv")
 #VARIABLE Q35

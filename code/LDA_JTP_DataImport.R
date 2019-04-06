@@ -99,7 +99,7 @@ j_JTP <- j_JTP %>% dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value =
   # New dataset that includes Q32_sum and Q33_sum
 
 
-#NEWTEST. IN PROG
+#SARA LOOK HERE
 temp4 <- j_JTP %>% dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value = "Value", "C3":"C40") %>%
   filter(Value != 0, !is.na(Value)) %>%  # Filter to remove 0 & NAs
   mutate(Circulus = as.numeric(gsub("^C", '', Varr)), Distance = Value) %>% #Make "Circulus" just the numbers (ie drop "C") 
@@ -115,6 +115,8 @@ temp4 <- j_JTP %>% dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value =
          SFAZ_0.5 = SFAZ * 0.5) %>% # Distance of half SFAZ
   arrange(Sample_ID, Circulus) %>% 
   mutate(Cum.sum = cumsum(Distance) )
+View(temp4)
+# Rows 41 & 42 are different than LDA_SEM. Circ 23 & 24 are excluded in the LDA_SEM file. Is this on purpose? Which is correct?
 
   mutate(Q32 = ifelse(Circulus >= NCFAZ_6 & Circulus <= NCFAZ_adj, Distance,0),
          Q33 = ifelse(Circulus >= NCFAZ_7 & Circulus <= NCFAZ_adj, Distance,0)) %>% #count distance if btwn NCFAZ_adj & NCFAZ_6)
