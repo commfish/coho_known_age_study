@@ -14,7 +14,8 @@ library (MASS)
 library (vegan)
 
 # Will need this function for converting year correctly
-convyear <- function(x, year=2000){ m <- year(x) %% 100
+convyear <- function(x, year=2000){ 
+  m <- year(x) %% 100
   year(x) <- ifelse(m > year %% 100, 1900+m, 2000+m)
   x
 }
@@ -25,11 +26,12 @@ coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALS
 
 A1_JTP <- coho_scales %>% 
   dplyr::select("IMAGENAME":"Comment") %>% # Include only the first 11 columns
-  bind_cols(coho_scales %>% dplyr::select(starts_with("Z"))) %>% # Select only the Z columns, then put back together
+  bind_cols(coho_scales %>% 
+            dplyr::select(starts_with("Z"))) %>% # Select only the Z columns, then put back together
   gather(key = "Variable", value = "Zone", "Z1":"Z41") # turn from wide to long, each row is a zone
 
 A2_JTP <- coho_scales %>% 
-  dplyr::select("IMAGENAME":"Comment") %>% # InClude only the first 11 columns
+  dplyr::select("IMAGENAME":"Comment") %>% # Include only the first 11 columns
   bind_cols(coho_scales %>% 
   dplyr::select(-"Comment") %>% 
   dplyr::select(starts_with("C"))) %>% # Select only the C cols, then bind
@@ -47,33 +49,38 @@ coho_scales_long <- A2_JTP %>%
   drop_na("Distance") # remove rows with NAs for Distance
 
 jj_JTP <- coho_scales_long %>% 
-  dcast(Sample_ID ~ Circulus, value.var = "Distance", fun = sum) %>% # Now that data are correct, turn back to wide
-  select(Sample_ID, num_range("C", range = 3:41)) %>% # Grab just the Sample_ID and "C" columns
-  left_join(coho_scales_long %>% 
-  dcast(Sample_ID ~ Variable, value.var = "Zone") %>% # Join these with the correct wide data...
-  select(Sample_ID, num_range("Z", range = 3:41)), by = c("Sample_ID" = "Sample_ID")) %>% # ... grabbing just Z cols
-  left_join(coho_scales %>% dplyr::select("IMAGENAME":"Comment"), by = c("Sample_ID" = "Sample_ID")) %>% # Now merge back w/ header data
-  dplyr::select("Sample_ID", "IMAGENAME":"Comment", everything()) # Arrange col order to be as preferred
+  dplyr::select(-Variable, -Zone) %>% # Drop these two cols so that spread works correctly
+  spread(key = Circulus, value = Distance) %>% # Now that data are correct, turn back to wide with "C" cols
+  left_join(coho_scales_long %>% # Next, we'll merge with the Z cols
+            dplyr::select(-c(IMAGENAME, Location:Comment, Circulus, Distance)) %>% # exclude extra header info
+            spread(key = Variable, value = Zone), # Spread by Z cols
+            by = c("Sample_ID" = "Sample_ID")) %>% # Merge with the C cols
+  dplyr::select("Sample_ID", "IMAGENAME":"Comment", #Finally, reorder all the columns correctly
+                num_range("C", range = 3:41), num_range("Z", range = 3:41))
 #rm(A1_JTP, A2_JTP, coho_scales_long)
 #new dataset jj_JTP is without plus groups or distance from focus to C2
 
-# NOTE: The long dataframe is different slightly than the same length dataframe. It appears that melt truncates results to 128000 while gather can handle all 
-# Runs on just four packages (tidyverse, lubridate, reshape2, and here). Removing reshape functionality.
-
-
+# NOTE: The JTP long dataframe is different slightly than the same long SEM dataframe. 
+# Runs on just three packages (tidyverse, lubridate, and here). Removed reshape functionality.
 
 
 #**************************************************************************************************
 #PART II: Summarize data by sample ID, zone, and circuli distance and count
 
-temp2 <- coho_scales_long %>% filter(Zone == 1 | Zone ==2) %>% group_by(Sample_ID, Zone) %>% 
+temp2 <- coho_scales_long %>% 
+  filter(Zone == 1 | Zone ==2) %>% 
+  group_by(Sample_ID, Zone) %>% 
   summarise(freq = length(Distance), Distance = sum (Distance)) %>% #does not include plus group or distance from focus to C2
   mutate(Zone = replace(Zone, Zone==1, "Zone1"),
          Zone = replace(Zone, Zone==2, "Zone2")) %>%
   rename(value = Distance) 
 
-j_JTP <- left_join(temp2 %>% dplyr::select(-freq) %>% spread(Zone, value = value), #summary of circuli distance by zone and sample_ID
-                   temp2 %>% dplyr::select(-value) %>% rename(value = freq) %>%
+j_JTP <- left_join(temp2 %>% 
+                   dplyr::select(-freq) %>% 
+                   spread(Zone, value = value), #summary of circuli distance by zone and sample_ID
+                   temp2 %>% 
+                   dplyr::select(-value) %>% 
+                   rename(value = freq) %>%
                    spread(Zone, value = value) %>% 
                    rename(Count_Zone1 = Zone1, Count_Zone2 = Zone2), #count of circuli distance by zone and fish ID
                    by = c("Sample_ID" = "Sample_ID")) %>%
@@ -81,12 +88,13 @@ j_JTP <- left_join(temp2 %>% dplyr::select(-freq) %>% spread(Zone, value = value
 #new dataset with zone summaries and C1... and Z1...
 
 
-
 #**************************************************************************************************
 # PART III: Calculate step#1 for variables Q32 and Q33
 # PART IV: Merge full dataset with summarized dataset by Sample_ID
 
-j_JTP <- j_JTP %>% dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value = "Value", "C3":"C40") %>%
+j_JTP <- j_JTP %>% 
+  dplyr::select(Sample_ID:C40) %>% 
+  gather(key = "Varr", value = "Value", "C3":"C40") %>%
   filter(Value != 0, !is.na(Value)) %>%  # Filter to remove 0 & NAs
   mutate(Circulus = as.numeric(gsub("^C", '', Varr)), Distance = Value) %>% #Make "Circulus" just the numbers (ie drop "C") 
   dplyr::select(-Varr, -Value) %>% #drop these two cols
@@ -99,15 +107,18 @@ j_JTP <- j_JTP %>% dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value =
   arrange(Sample_ID, Circulus) %>%
   mutate(Q32 = ifelse(Circulus >= NCFAZ_6 & Circulus <= NCFAZ_adj, Distance,0),
          Q33 = ifelse(Circulus >= NCFAZ_7 & Circulus <= NCFAZ_adj, Distance,0)) %>% #count distance if btwn NCFAZ_adj & NCFAZ_6)
-  group_by(Sample_ID) %>% summarise(Q32_sum = sum(Q32), Q33_sum = sum(Q33)) %>% #dataset of distance from NCFAZ_adj, NCFAZ_6, NCFAZ_7 
+  group_by(Sample_ID) %>% 
+  summarise(Q32_sum = sum(Q32), Q33_sum = sum(Q33)) %>% #dataset of distance from NCFAZ_adj, NCFAZ_6, NCFAZ_7 
   left_join(j_JTP, by = c("Sample_ID" = "Sample_ID"))
   # New dataset that includes Q32_sum and Q33_sum
+# Same as "j" at end of Part IV
 
 
 #SARA LOOK HERE
-temp4 <- j_JTP %>% dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value = "Value", "C3":"C40") %>%
+temp4 <- j_JTP %>% 
+  dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value = "Value", "C3":"C40") %>%
   filter(Value != 0, !is.na(Value)) %>%  # Filter to remove 0 & NAs
-  mutate(Circulus = as.numeric(gsub("^C", '', Varr)), Distance = Value) %>% #Make "Circulus" just the numbers (ie drop "C") 
+  mutate(Circulus = as.numeric(gsub("^C", '', Varr)), Distance = Value) %>% # Make "Circulus" just the numbers (ie drop "C") 
   dplyr::select(-Varr, -Value) %>% #drop these two cols
   mutate(NCFAZ = ifelse(Age == 1, Count_Zone1, # Add column NCFAZ
                         ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)),
@@ -123,10 +134,40 @@ temp4 <- j_JTP %>% dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value =
 View(temp4)
 # Rows 41 & 42 are different than LDA_SEM. Circ 23 & 24 are excluded in the LDA_SEM file. Is this on purpose? Which is correct?
 
-  mutate(Q32 = ifelse(Circulus >= NCFAZ_6 & Circulus <= NCFAZ_adj, Distance,0),
-         Q33 = ifelse(Circulus >= NCFAZ_7 & Circulus <= NCFAZ_adj, Distance,0)) %>% #count distance if btwn NCFAZ_adj & NCFAZ_6)
-  group_by(Sample_ID) %>% summarise(Q32_sum = sum(Q32), Q33_sum = sum(Q33)) %>% #dataset of distance from NCFAZ_adj, NCFAZ_6, NCFAZ_7 
-  left_join(j_JTP, by = c("Sample_ID" = "Sample_ID"))
+
+# IN PROG. Should be the same as end of PART IV in SEM code. Replaces code through line 94 above.
+# j_JTP %>% 
+#   dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value = "Value", "C3":"C40") %>%
+#   filter(Value != 0, !is.na(Value)) %>%  # Filter to remove 0 & NAs
+#   mutate(Circulus = as.numeric(gsub("^C", '', Varr)), # Make "Circulus" just the numbers (ie drop "C") 
+#          Distance = Value) %>% 
+#   dplyr::select(-Varr, -Value) %>% #drop these two cols
+#   mutate(NCFAZ = ifelse(Age == 1, Count_Zone1, # Add column NCFAZ
+#                         ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)),
+#          NCFAZ_adj = ifelse(Age == 1, Count_Zone1 + 2, # Adjust NCFAZ for focus to C2; data pairs variable includes plus group
+#                             ifelse(Age == 2, Count_Zone1 + Count_Zone2 + 2, NA)),
+#          NCFAZ_6 = NCFAZ_adj-5, 
+#          NCFAZ_7 = NCFAZ_adj-6,# Minimum circulus to count
+#          SFAZ = ifelse(Age == 1, Zone1,
+#                        ifelse(Age == 2, Zone1 + Zone2, NA)), #total distance of circuli by Sample_ID (no plus group or focus to C2)
+#          SFAZ_0.5 = SFAZ * 0.5, # Distance of half SFAZ
+#          SFAZ_0.75 = SFAZ * 0.75) %>% # Distance of 3/4 of SFAZ
+#   arrange(Sample_ID, Circulus) %>% 
+#   group_by(Sample_ID) %>%
+#   mutate(Cum.sum_0.5 = cumsum(Distance) ) %>% # Take cum distance by Sample_ID, inner to outer (used for SFAZ0.5)
+#   arrange(Sample_ID, -Circulus) %>%
+#   group_by(Sample_ID) %>%
+#   mutate(Cum.sum_0.75 = cumsum(Distance)) %>% # Take cum distance by Sample_ID, outer to inner (used for SFAZ0.75)
+#   mutate(Q32 = ifelse(Circulus >= NCFAZ_6 & Circulus <= NCFAZ_adj, Distance,0),
+#          Q33 = ifelse(Circulus >= NCFAZ_7 & Circulus <= NCFAZ_adj, Distance,0), #count distance if btwn NCFAZ_adj & NCFAZ_6)
+#          Circuli_SFAZ_0.5 = ifelse(Cum.sum_0.5 <= SFAZ_0.5, 1, 0), 
+#          Circuli_SFAZ_0.75 = ifelse(Cum.sum_0.75 <= SFAZ_0.75, 1, 0)) %>% 
+#   group_by(Sample_ID) %>% 
+#   summarise(Q32_sum = sum(Q32), Q33_sum = sum(Q33), 
+#             Circuli_SFAZ_0.5 = sum(Circuli_SFAZ_0.5), 
+#             Circuli_SFAZ_0.75 = sum(Circuli_SFAZ_0.75)) %>% #dataset of distance from NCFAZ_adj, NCFAZ_6, NCFAZ_7 
+#   left_join(j_JTP, by = c("Sample_ID" = "Sample_ID", "Q32_sum" = "Q32_sum", "Q33_sum" = "Q33_sum")) %>%
+#   dplyr::select(Sample_ID, Zone1:Z40, Q32_sum, Q33_sum, Circuli_SFAZ_0.5, Circuli_SFAZ_0.75) # reorganize order
 
 
 
