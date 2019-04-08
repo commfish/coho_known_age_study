@@ -126,6 +126,7 @@ rm(A1,B1)
 #PART IV: Merge full dataset with summarized dataset by Sample_ID
 j <- merge(j,Merge, by=c("Sample_ID")) #new dataset that includes Q32_sum and Q33_sum
 rm(Merge) 
+
 #**************************************************************************************************
 #PART V: Calculate step#1 for variables Q34 & Q35
 #VARIABLE Q34
