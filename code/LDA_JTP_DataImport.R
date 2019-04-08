@@ -6,10 +6,7 @@
 library(here)
 library(tidyverse)
 library(lubridate)
-library(reshape2)
-library(reshape)
-library (plyr)
-library (dplyr)
+
 library (MASS)
 library (vegan)
 
@@ -22,7 +19,9 @@ convyear <- function(x, year=2000){
 
 # First, read in the data and make sure that the dates import correctly. 
 coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE) %>%
-  mutate(Date = ymd(convyear(strptime(Date, format = "%d-%b-%Y", tz="US/Alaska"))))
+  mutate(Date = ymd(convyear(strptime(Date, format = "%d-%b-%Y", tz="US/Alaska")))) %>%
+  drop_na(Data_Pairs) # Exclude rows with no distances measured
+
 
 A1_JTP <- coho_scales %>% 
   dplyr::select("IMAGENAME":"Comment") %>% # Include only the first 11 columns
@@ -91,129 +90,46 @@ j_JTP <- left_join(temp2 %>%
 #**************************************************************************************************
 # PART III: Calculate step#1 for variables Q32 and Q33
 # PART IV: Merge full dataset with summarized dataset by Sample_ID
+# PART V: Calculate step#1 for variables Q34 & Q35
 
-j_JTP <- j_JTP %>% 
+
+
+j_JTP <- j_JTP %>%
   dplyr::select(Sample_ID:C40) %>% 
   gather(key = "Varr", value = "Value", "C3":"C40") %>%
   filter(Value != 0, !is.na(Value)) %>%  # Filter to remove 0 & NAs
-  mutate(Circulus = as.numeric(gsub("^C", '', Varr)), Distance = Value) %>% #Make "Circulus" just the numbers (ie drop "C") 
-  dplyr::select(-Varr, -Value) %>% #drop these two cols
-  mutate(NCFAZ = ifelse(Age == 1, Count_Zone1, # Add column NCFAZ
-         ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)),
-         NCFAZ_adj = ifelse(Age == 1, Count_Zone1 + 2, # Adjust NCFAZ for focus to C2; data pairs variable includes plus group
-                            ifelse(Age == 2, Count_Zone1 + Count_Zone2 + 2, NA)),
-         NCFAZ_6 = NCFAZ_adj-5, 
-         NCFAZ_7 = NCFAZ_adj-6) %>% # Minimum circulus to count
-  arrange(Sample_ID, Circulus) %>%
-  mutate(Q32 = ifelse(Circulus >= NCFAZ_6 & Circulus <= NCFAZ_adj, Distance,0),
-         Q33 = ifelse(Circulus >= NCFAZ_7 & Circulus <= NCFAZ_adj, Distance,0)) %>% #count distance if btwn NCFAZ_adj & NCFAZ_6)
-  group_by(Sample_ID) %>% 
-  summarise(Q32_sum = sum(Q32), Q33_sum = sum(Q33)) %>% #dataset of distance from NCFAZ_adj, NCFAZ_6, NCFAZ_7 
-  left_join(j_JTP, by = c("Sample_ID" = "Sample_ID"))
-  # New dataset that includes Q32_sum and Q33_sum
-# Same as "j" at end of Part IV
-
-
-#SARA LOOK HERE
-temp4 <- j_JTP %>% 
-  dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value = "Value", "C3":"C40") %>%
-  filter(Value != 0, !is.na(Value)) %>%  # Filter to remove 0 & NAs
-  mutate(Circulus = as.numeric(gsub("^C", '', Varr)), Distance = Value) %>% # Make "Circulus" just the numbers (ie drop "C") 
+  mutate(Circulus = as.numeric(gsub("^C", '', Varr)), # Make "Circulus" just the numbers (ie drop "C")
+         Distance = Value) %>%
   dplyr::select(-Varr, -Value) %>% #drop these two cols
   mutate(NCFAZ = ifelse(Age == 1, Count_Zone1, # Add column NCFAZ
                         ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)),
          NCFAZ_adj = ifelse(Age == 1, Count_Zone1 + 2, # Adjust NCFAZ for focus to C2; data pairs variable includes plus group
                             ifelse(Age == 2, Count_Zone1 + Count_Zone2 + 2, NA)),
-         NCFAZ_6 = NCFAZ_adj-5, 
+         NCFAZ_6 = NCFAZ_adj-5,
          NCFAZ_7 = NCFAZ_adj-6,# Minimum circulus to count
          SFAZ = ifelse(Age == 1, Zone1,
                        ifelse(Age == 2, Zone1 + Zone2, NA)), #total distance of circuli by Sample_ID (no plus group or focus to C2)
-         SFAZ_0.5 = SFAZ * 0.5) %>% # Distance of half SFAZ
-  arrange(Sample_ID, Circulus) %>% 
-  mutate(Cum.sum = cumsum(Distance) )
-View(temp4)
-# Rows 41 & 42 are different than LDA_SEM. Circ 23 & 24 are excluded in the LDA_SEM file. Is this on purpose? Which is correct?
-
-
-# IN PROG. Should be the same as end of PART IV in SEM code. Replaces code through line 94 above.
-# j_JTP %>% 
-#   dplyr::select(Sample_ID:C40) %>% gather(key = "Varr", value = "Value", "C3":"C40") %>%
-#   filter(Value != 0, !is.na(Value)) %>%  # Filter to remove 0 & NAs
-#   mutate(Circulus = as.numeric(gsub("^C", '', Varr)), # Make "Circulus" just the numbers (ie drop "C") 
-#          Distance = Value) %>% 
-#   dplyr::select(-Varr, -Value) %>% #drop these two cols
-#   mutate(NCFAZ = ifelse(Age == 1, Count_Zone1, # Add column NCFAZ
-#                         ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)),
-#          NCFAZ_adj = ifelse(Age == 1, Count_Zone1 + 2, # Adjust NCFAZ for focus to C2; data pairs variable includes plus group
-#                             ifelse(Age == 2, Count_Zone1 + Count_Zone2 + 2, NA)),
-#          NCFAZ_6 = NCFAZ_adj-5, 
-#          NCFAZ_7 = NCFAZ_adj-6,# Minimum circulus to count
-#          SFAZ = ifelse(Age == 1, Zone1,
-#                        ifelse(Age == 2, Zone1 + Zone2, NA)), #total distance of circuli by Sample_ID (no plus group or focus to C2)
-#          SFAZ_0.5 = SFAZ * 0.5, # Distance of half SFAZ
-#          SFAZ_0.75 = SFAZ * 0.75) %>% # Distance of 3/4 of SFAZ
-#   arrange(Sample_ID, Circulus) %>% 
-#   group_by(Sample_ID) %>%
-#   mutate(Cum.sum_0.5 = cumsum(Distance) ) %>% # Take cum distance by Sample_ID, inner to outer (used for SFAZ0.5)
-#   arrange(Sample_ID, -Circulus) %>%
-#   group_by(Sample_ID) %>%
-#   mutate(Cum.sum_0.75 = cumsum(Distance)) %>% # Take cum distance by Sample_ID, outer to inner (used for SFAZ0.75)
-#   mutate(Q32 = ifelse(Circulus >= NCFAZ_6 & Circulus <= NCFAZ_adj, Distance,0),
-#          Q33 = ifelse(Circulus >= NCFAZ_7 & Circulus <= NCFAZ_adj, Distance,0), #count distance if btwn NCFAZ_adj & NCFAZ_6)
-#          Circuli_SFAZ_0.5 = ifelse(Cum.sum_0.5 <= SFAZ_0.5, 1, 0), 
-#          Circuli_SFAZ_0.75 = ifelse(Cum.sum_0.75 <= SFAZ_0.75, 1, 0)) %>% 
-#   group_by(Sample_ID) %>% 
-#   summarise(Q32_sum = sum(Q32), Q33_sum = sum(Q33), 
-#             Circuli_SFAZ_0.5 = sum(Circuli_SFAZ_0.5), 
-#             Circuli_SFAZ_0.75 = sum(Circuli_SFAZ_0.75)) %>% #dataset of distance from NCFAZ_adj, NCFAZ_6, NCFAZ_7 
-#   left_join(j_JTP, by = c("Sample_ID" = "Sample_ID", "Q32_sum" = "Q32_sum", "Q33_sum" = "Q33_sum")) %>%
-#   dplyr::select(Sample_ID, Zone1:Z40, Q32_sum, Q33_sum, Circuli_SFAZ_0.5, Circuli_SFAZ_0.75) # reorganize order
+         SFAZ_0.5 = SFAZ * 0.5, # Distance of half SFAZ
+         SFAZ_0.75 = SFAZ * 0.75) %>% # Distance of 3/4 of SFAZ
+  arrange(Sample_ID, Circulus) %>%
+  group_by(Sample_ID) %>%
+  mutate(Cum.sum_0.5 = cumsum(Distance) ) %>% # Take cum distance by Sample_ID, inner to outer (used for SFAZ0.5)
+  arrange(Sample_ID, -Circulus) %>%
+  group_by(Sample_ID) %>%
+  mutate(Cum.sum_0.75 = cumsum(Distance)) %>% # Take cum distance by Sample_ID, outer to inner (used for SFAZ0.75)
+  mutate(Q32 = ifelse(Circulus >= NCFAZ_6 & Circulus <= NCFAZ_adj, Distance,0),
+         Q33 = ifelse(Circulus >= NCFAZ_7 & Circulus <= NCFAZ_adj, Distance,0), #count distance if btwn NCFAZ_adj & NCFAZ_6)
+         Circuli_SFAZ_0.5 = ifelse(Cum.sum_0.5 <= SFAZ_0.5, 1, 0), # Count if SFAZ_0.5 is less than cum sum
+         Circuli_SFAZ_0.75 = ifelse(Cum.sum_0.75 <= SFAZ_0.75, 1, 0)) %>% # Count if SFAZ_0.75 is less than cum sum (outer to inner)
+  group_by(Sample_ID) %>%
+  summarise(Q32_sum = sum(Q32), Q33_sum = sum(Q33),
+            Circuli_SFAZ_0.5 = sum(Circuli_SFAZ_0.5), # Variable Q34
+            Circuli_SFAZ_0.75 = sum(Circuli_SFAZ_0.75)) %>% # Variable Q35 
+  left_join(j_JTP, by = c("Sample_ID" = "Sample_ID", "Q32_sum" = "Q32_sum", "Q33_sum" = "Q33_sum")) %>%
+  dplyr::select(Sample_ID, Zone1:Z40, Q32_sum, Q33_sum, Circuli_SFAZ_0.5, Circuli_SFAZ_0.75) # reorganize order
 
 
 
-#**************************************************************************************************
-
-#PART V: Calculate step#1 for variables Q34 & Q35
-#VARIABLE Q34
-A1 <- j[, c(1:15, 16:53)] 
-A1 <- melt(A1, id=c(1:15)) #circulus by distance
-A1$value[which(A1$value==0)] = NA
-A1<-subset(A1, !is.na(value)) #delete rows with NA 
-A1["Circulus"] <-as.numeric(gsub("^C", '', A1$variable))
-A1["Distance"] <-A1$value
-A1<- subset(A1, select = -c(variable,value))
-A1["NCFAZ"] <-ifelse(A1$Age==1,A1$Count_Zone1,
-                     ifelse(A1$Age==2,A1$Count_Zone1+A1$Count_Zone2,NA)) #number of circuli by Sample_ID (no plus group or focus to C2)
-A1["SFAZ"] <-ifelse(A1$Age==1,A1$Zone1,
-                    ifelse(A1$Age==2,A1$Zone1+A1$Zone2,NA)) #total distance of circuli by Sample_ID (no plus group or focus to C2)
-A1["SFAZ_0.5"] <-0.5*A1$SFAZ #distance of half of SFAZ
-A1["Circulus"]<-as.numeric(A1$Circulus)
-A1 <- A1[order(A1$Sample_ID, A1$Circulus),]
-A1<-ddply(A1, .(Sample_ID), transform, Cumulative.Sum = cumsum(Distance)) #cumulative sum of distances
-A1["Circuli_SFAZ_0.5"] <-ifelse(A1$Cumulative.Sum<=A1$SFAZ_0.5,1,0) #count if distance is <=SFAZ*0.5
-A1 <- aggregate(Circuli_SFAZ_0.5~Sample_ID, A1, FUN=sum, na.action=na.omit) #summarize number of circuli in first half of SFAZ
-
-#VARIABLE Q35
-B1 <- j[, c(1:15, 16:53)] 
-B1 <- melt(B1, id=c(1:15))
-B1$value[which(B1$value==0)] = NA
-B1<-subset(B1, !is.na(value)) #delete rows with NA 
-B1["Circulus"] <-as.numeric(gsub("^C", '', B1$variable))
-B1["Distance"] <-B1$value
-B1<- subset(B1, select = -c(variable,value))
-B1["NCFAZ"] <-ifelse(B1$Age==1,B1$Count_Zone1,
-                     ifelse(B1$Age==2,B1$Count_Zone1+B1$Count_Zone2,NA)) #number of circuli by Sample_ID (no plus group or focus to C2)
-B1["SFAZ"] <-ifelse(B1$Age==1,B1$Zone1,
-                    ifelse(B1$Age==2,B1$Zone1+B1$Zone2,NA))  #total distance of circuli by Sample_ID (no plus group or focus to C2)
-B1["SFAZ_0.75"] <-0.75*(B1$SFAZ)#distance of 3/4 of SFAZ
-B1["Circulus"]<-as.numeric(B1$Circulus)
-B1 <- B1[order(B1$Sample_ID, -B1$Circulus),]
-B1<-ddply(B1, .(Sample_ID), transform, Cumulative.Sum = cumsum(Distance))#cumulative sum of distances (start from end of zone)
-B1["Circuli_SFAZ_0.75"] <-ifelse(B1$Cumulative.Sum<=B1$SFAZ_0.75,1,0) #count if distance is <=SFAZ*0.75
-B1 <- aggregate(Circuli_SFAZ_0.75~Sample_ID, B1, FUN=sum)#summarize number of circuli in last 3/4 of SFAZ
-Merge <- merge(A1,B1, by=c("Sample_ID")) #merge Q34 and Q35 variables by Sample_ID
-j <- merge(j,Merge, by=c("Sample_ID")) 
-rm(A1,B1) 
 
 #**************************************************************************************************
 
