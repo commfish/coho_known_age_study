@@ -78,7 +78,7 @@ i<- subset(i, select = -c(Zone1:Zone2))
 j <- merge(h,i, by=c("Sample_ID")) #merge counts of circuli by zone and sum of distance by zones
 j <- merge(j,jj, by=c("Sample_ID")) #new dataset with zone summaries and C1... and Z1...
 rm(e,f,g,h,i)  
-write.csv(j, "H:\\Salmon\\test.csv")
+#write.csv(j, "H:\\Salmon\\test.csv")
 #**************************************************************************************************
 #PART III: Calculate step#1 for variables Q32 and Q33
 #VARIABLE Q32
@@ -275,8 +275,9 @@ j<-j[,c(1:93, 99:167,94:98)] #reorganize variable order
 
 #PART VIII: Create variables Q71:Q72 
 #VARIABLE Q71
-A1 <- j[, c(1, 16:54, 96)] 
-A1 <- melt(A1, id=c(1,41))
+#A1 <- j[, c(1, 16:54, 96)] # Orig SEM code
+A1 <- j[, c(1, 16:53, 94)] #JTP Update. Looks like the numbers should be this? Missing C41 & Z41
+A1 <- melt(A1, id=c(1,40))
 A1["Circulus"] <-as.numeric(gsub("^C", '', A1$variable))#delete C from C3...
 A1["Distance"] <-A1$value
 A1<- subset(A1, select = -c(variable,value))
@@ -305,7 +306,7 @@ j <- merge(j,A1, by=c("Sample_ID"))
 rm(A1)#remove datasets
 j<-j[,c(1:162, 168, 169,163:167)] #reorganize variable order
 j<- subset(j, select = -c(Sum_Zones))
-write.csv(j, "H:\\Salmon\\LDA.csv")
+#write.csv(j, "H:\\Salmon\\LDA.csv")
 
 #subset datasets for different analyses
 AL_BR_HS<- subset(j, select = c(1:8, 92:137))#Full dataset (all areas)
