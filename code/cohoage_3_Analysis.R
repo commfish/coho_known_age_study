@@ -22,9 +22,8 @@
 
 
 library(here)
-library (MASS)
-library (vegan)
+library(MASS)
+library(vegan)
 
 # Run previous script to import data
 source(here::here("code/cohoage_1_DataImport_JTP.R"))
-system.time(source(here::here("code/OLD_LDA_SEM_Draft.R")))
