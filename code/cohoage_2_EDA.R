@@ -1,6 +1,7 @@
 library(corrplot)
 library(GGally)
 library(here)
+library(mgcv)
 
 # Run previous script to import data
 source(here::here("code/cohoage_1_DataImport_JTP.R"))
@@ -38,3 +39,17 @@ for(q in c("HS", "BR", "AL")) {
 
 #caution, this takes a while to eval!
 ggpairs(coho_scales_aukelake %>% dplyr::select("Zone1":"Count_Zone2", "Year", "Age":"Q10"))
+
+
+ggplot(coho_scales_aukelake, aes(y = Length, group = Age) ) +
+  geom_boxplot()
+
+summary(lm(data=coho_scales_aukelake, Age~Length+Q5+Q12))
+summary(gam(data=coho_scales_aukelake, Age ~ Length + Q5))
+summary(gam(data=coho_scales_aukelake, Age ~ Length + s(Q5))) # deviance explained rises quite a bit
+summary(gam(data=coho_scales_aukelake, (Age-1) ~ Length + Q5, family = "binomial"))
+
+summary(glm(data=coho_scales_aukelake, (Age-1) ~ log(Length) + log(Q5), family = "binomial")) # Top linear model (Len&Q5 only)
+summary(gam(data=coho_scales_aukelake, (Age-1) ~ Length + s(Q5), family = "binomial")) # Top non-linear model (Len&Q5 only)
+
+

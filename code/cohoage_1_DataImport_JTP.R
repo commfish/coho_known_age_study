@@ -13,7 +13,7 @@
 # Converted SAS code to R code: Coho Smolt Scale Data-LDA
 
 # Data info: These data come from Coho Salmon scales which were collected between 1994 and 2005 by ________
-# at three locations: Auke Lake (AL), Berner's River (BR), and High Smith Lake (HS)
+# at three locations: Auke Lake (AL), Berner's River (BR), and Hugh Smith Lake (HS)
 # Scale data were then read by the ADF&G Mark, Tag, and Age Lab
 # Define "Circuli"
 # Define "Zones"
@@ -296,9 +296,9 @@ coho_scales_berners <- coho_scales_fulldata %>%
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
   filter(Location == "BR") #river system (Berner's River)
 
-coho_scales_highsmith <- coho_scales_fulldata %>% 
+coho_scales_hughsmith <- coho_scales_fulldata %>% 
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
-  filter(Location == "HS") #Lake system (High Smith Lake)
+  filter(Location == "HS") #Lake system (Hugh Smith Lake)
 
 coho_scales_lakes <- coho_scales_fulldata %>% 
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
