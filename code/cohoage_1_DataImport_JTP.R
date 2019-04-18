@@ -54,13 +54,13 @@ A2_JTP <- coho_scales %>%
 coho_scales_long <- A2_JTP %>% 
   bind_cols(A1_JTP %>% 
   dplyr::select("Zone", "Variable")) %>%
-  filter(Circulus != "C1", Circulus != "C2", Age != 3) %>% 
-  # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
+  filter(Circulus != "C1", Circulus != "C2", Age != 3) %>% # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
   mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
-                           ifelse(Age == 2 & Zone <= 2, Distance2, NA))) %>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
+                           ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
   arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus 
   dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
-  drop_na("Distance") # remove rows with NAs for Distance
+  drop_na("Distance") %>% # remove rows with NAs for Distance
+#write.csv(write.csv(x, "data/check.csv") )
 
 jj_JTP <- coho_scales_long %>% 
   dplyr::select(-Variable, -Zone) %>% # Drop these two cols so that spread works correctly
@@ -73,7 +73,7 @@ jj_JTP <- coho_scales_long %>%
                 num_range("C", range = 3:41), num_range("Z", range = 3:41))
 #rm(A1_JTP, A2_JTP, coho_scales_long)
 #new dataset jj_JTP is without plus groups or distance from focus to C2
-
+write.csv(write.csv(jj_JTP, "data/check2.csv"))
 # NOTE: The JTP long dataframe is different slightly than the same long SEM dataframe. 
 # Runs on just three packages (tidyverse, lubridate, and here). Removed reshape functionality.
 
