@@ -12,7 +12,7 @@
 # SEM: This is converted SAS code that I worked on awhile back (SEM-2-28-2019)
 # Converted SAS code to R code: Coho Smolt Scale Data-LDA
 
-# Data info: These data come from Coho Salmon scales which were collected between 1994 and 2005 by ________
+# Data info: These data come from Coho Salmon scales which were collected between 1994 and 2005 by ADF&G
 # at three locations: Auke Lake (AL), Berner's River (BR), and Hugh Smith Lake (HS)
 # Scale data were then read by the ADF&G Mark, Tag, and Age Lab
 # Define "Circuli"
