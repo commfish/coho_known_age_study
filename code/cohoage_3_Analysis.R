@@ -31,26 +31,92 @@ source(here::here("code/cohoage_1_DataImport_JTP.R"))
 
 
 
+# Run Linear and Quadratic Discriminant Analysis (LDA & QDA) 
 # Following approach from: https://www.statmethods.net/advstats/discriminant.html
-fit_lda <- lda(Age ~ Length + Q5, data=coho_scales_aukelake,
+fit_lda <- lda(Age ~ Location + Length + Q9, data=coho_scales_fulldata, #Q9 chosen after extensive testing
            na.action="na.omit", CV=TRUE)
-fit_lda 
-ct <- table(coho_scales_aukelake$Age[!is.na(coho_scales_aukelake$Length)], fit_lda$class)
-diag(prop.table(ct, 1))
+ct <- table(coho_scales_fulldata$Age[!is.na(coho_scales_fulldata$Length)], fit_lda$class)
+diag(prop.table(table(coho_scales_fulldata$Age[!is.na(coho_scales_fulldata$Length)], fit_lda$class), 1))
 # total percent correct
-sum(diag(prop.table(ct)))
+sum(diag(prop.table(table(coho_scales_fulldata$Age[!is.na(coho_scales_fulldata$Length)], fit_lda$class)))) 
+#Performs pretty well! 94% accuracy
+klaR::partimat(as.factor(Age)~Length+Q9,data=coho_scales_fulldata,method="lda") 
 
+
+# Perhaps model could be improved by accounting for quadratic curvature
 fit_qda <- qda(as.factor(Age) ~ Location + Length + Q9, data=coho_scales_fulldata,
            prior=c(0.66,0.34)) #prior prob 66% fish are Age1 (leave blank for uninformed)
-fit_qda
-klaR::partimat(as.factor(Age)~Length+Q9,data=coho_scales_fulldata,method="qda") 
-klaR::partimat(as.factor(Age)~Length+Q9,data=coho_scales_berners,method="qda") 
-klaR::partimat(as.factor(Age)~Length+Q9,data=coho_scales_aukelake,method="qda") 
-klaR::partimat(as.factor(Age)~Length+Q9,data=coho_scales_hughsmith,method="qda") 
+# fits better as quadratic. And relaxed assumptions about homoscedascity
+
+
+klaR::partimat(as.factor(Age) ~ Length + Q9, data=coho_scales_fulldata, method="qda", prec=250, main="All Sites") 
+klaR::partimat(as.factor(Age) ~ Length + Q9, data=coho_scales_aukelake, method="qda", prec=250, main="Auke Lake") 
+klaR::partimat(as.factor(Age) ~ Length + Q9, data=coho_scales_berners, method="qda", prec=250, main="Berners River") 
+klaR::partimat(as.factor(Age) ~ Length + Q9, data=coho_scales_hughsmith, method="qda", prec=250, main="Hugh Smith") 
 
 coho_scales_fulldata <- coho_scales_fulldata %>% 
   mutate(pred_age = predict(fit_qda, coho_scales_fulldata)$class,
          accuracy = ifelse(pred_age == Age, "Correct", "Incorrect"))
 coho_scales_fulldata %>% group_by(accuracy) %>% tally()
+
+
+
+#########
+# Same analysis but uses test and train subsets
+
+# This function takes a dataframe, splits it into two portions (train and test)
+# and then saves those dataframes. It will create two new dataframes at the end
+
+err_rate <- data.frame(err_rate =as.numeric())
+for(i in 1:1000){ #lower this to run faster
+  traintest_subset <- function(df, trainproportion){ #proportion should be ~60%?
+    .randrow <- sample(nrow(df), round(nrow(df) * trainproportion))
+    .df_train <- df[.randrow,]
+    .df_test <- df[-.randrow,]
+    assign(paste0(deparse(substitute(df)), "_train"), get(".df_train"), envir = .GlobalEnv)
+    assign(paste0(deparse(substitute(df)), "_test"), get(".df_test"), envir = .GlobalEnv)
+  }
+  
+  traintest_subset(coho_scales_fulldata, 0.6) 
+  
+  fit_qda_train <- qda(as.factor(Age) ~ Location + Length + Q9, data=coho_scales_fulldata_train,
+                       prior=c(0.66,0.34))
+  
+  err_rate[i,1] <- (coho_scales_fulldata_test %>% 
+    mutate(pred_age = predict(fit_qda_train, coho_scales_fulldata_test)$class,
+           accuracy = ifelse(pred_age == Age, "Correct", "Incorrect")) %>%
+    group_by(accuracy) %>% tally())[3,2]
+  
+}
+hist(err_rate$err_rate, breaks = 25)
+err_rate$total <- err_rate$err_rate / nrow(coho_scales_fulldata_test)
+quantile(err_rate$total, c(0.025, 0.975)) #95% CI for error rate is 5.5-7.9%
+
+rm(list = c(ls(pattern = "._train"), ls(pattern = "._test")), "err_rate") 
+
+# Summary, similar results as without using train/test datasets
+
+
+#######
+#manually recreate partimat() plot in ggplot
+
+testpred <- expand.grid(Q9=seq(min(coho_scales_fulldata$Q9), max(coho_scales_fulldata$Q9), length.out = 100), 
+            Length=seq(min(coho_scales_fulldata$Length, na.rm = TRUE), max(coho_scales_fulldata$Length, na.rm = TRUE), by=1),
+            Location = c("AL", "HS", "BR"))
+
+testpred$predval <- predict(fit_qda, testpred)$class
+
+coho_scales_aukelake <- coho_scales_aukelake %>% 
+  mutate(pred_age = predict(fit_qda, coho_scales_aukelake)$class,
+         accuracy = ifelse(pred_age == Age, "Correct", "Incorrect"))
+
+
+ggplot() + 
+  geom_tile(data = testpred %>% filter(Location == "AL"), aes(x=Q9, y=Length, fill=predval)) +
+  geom_text(data = coho_scales_aukelake, aes(x=Q9, y=Length, label=Age, color=accuracy)) + 
+  scale_color_manual(values = c("black", "red"), guide=FALSE) +
+  scale_fill_manual(name="Predicted\nAge", values = c("#a5d3ca", "#ffdeb2")) +
+  scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
+  ggtitle("Auke Lake")
 
 

@@ -2,6 +2,8 @@ library(corrplot)
 library(GGally)
 library(here)
 library(mgcv)
+library(mvnormtest)
+library(HH)
 
 # Run previous script to import data
 source(here::here("code/cohoage_1_DataImport_JTP.R"))
@@ -53,3 +55,113 @@ summary(glm(data=coho_scales_aukelake, (Age-1) ~ log(Length) + log(Q5), family =
 summary(gam(data=coho_scales_aukelake, (Age-1) ~ Length + s(Q5), family = "binomial")) # Top non-linear model (Len&Q5 only)
 
 
+
+test1 <- coho_scales_aukelake %>% filter(!is.na(Length))
+cor(test1$Q5, test1$Length) # High corr
+cor(test1$Q9, test1$Length) # Top predictor variables are very correlated
+cor(test1$Q5, test1$Age) 
+cor(test1$Length, test1$Age) # But are also good predictors of Age
+
+hist(coho_scales_aukelake$Length, breaks=15)
+hist((coho_scales_aukelake %>% filter(Age==1))$Length, breaks=15)
+hist((coho_scales_aukelake %>% filter(Age==2))$Length, breaks=15)
+hist(coho_scales_aukelake$Q9, breaks=15)
+hist(log(coho_scales_aukelake$Length), breaks=15)
+hist(log((coho_scales_aukelake %>% filter(Age==1))$Length), breaks=15)
+hist(log((coho_scales_aukelake %>% filter(Age==2))$Length), breaks=15)
+hist(log(coho_scales_aukelake$Q9), breaks=15)
+
+
+
+mvnormtest::mshapiro.test(t(coho_scales_aukelake %>% dplyr::select(Age, Length, Q2, Q5, Q9) %>% na.omit %>% as.matrix()))
+
+shapiro.test(coho_scales_aukelake$Q9) # Not normal
+shapiro.test(log(coho_scales_aukelake$Q9)) # Normal
+shapiro.test(log(coho_scales_aukelake$Length))
+shapiro.test((coho_scales_aukelake$Length)^0.25)
+
+shapiro.test((coho_scales_aukelake$Length[coho_scales_aukelake$Age == 1])) #Not normal, but slightly better log trans
+shapiro.test((coho_scales_aukelake$Length[coho_scales_aukelake$Age == 2])) #Not normal, but slightly better log trans
+shapiro.test((coho_scales_berners$Length[coho_scales_berners$Age == 1])) # VERY Not normal, but slightly better log trans
+shapiro.test((coho_scales_berners$Length[coho_scales_berners$Age == 2])) #Not normal, but worse with log trans
+shapiro.test((coho_scales_hughsmith$Length[coho_scales_hughsmith$Age == 1])) # Normal!
+shapiro.test((coho_scales_hughsmith$Length[coho_scales_hughsmith$Age == 2])) # Normal
+
+
+hist((coho_scales_berners$Length[coho_scales_berners$Age == 1]), breaks = 25)
+
+
+bartlett.test(log(Q5)~Age, data=coho_scales_aukelake)
+fligner.test(Length~Age, data=coho_scales_aukelake) 
+
+
+boxplot(Length~Age, data = coho_scales_aukelake)
+cov(coho_scales_aukelake$Q5, coho_scales_aukelake$Age)
+cov(coho_scales_aukelake$Length[!is.na(coho_scales_aukelake$Length)], 
+    coho_scales_aukelake$Age[!is.na(coho_scales_aukelake$Length)])
+
+HH::hov(Q9~as.factor(Age), data=coho_scales_aukelake)
+hov(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
+
+hovPlot(Q5~as.factor(Age), data=coho_scales_aukelake)
+hovPlot(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
+
+##################
+# explore how not normal it is
+
+hist.normal <- function(data, histcolumn, agefilter=0){ 
+  # Note that histcolumn needs to be in quotes when run. Leave agefilter blank to show both ages
+  if (agefilter != 1 & agefilter != 2){
+    .cleandata <- data %>% filter(!is.na(Length))
+    .agenum <- "Both ages"
+  }
+  else{
+    .cleandata <- data %>% filter(Age == agefilter, !is.na(Length))
+    .agenum <- paste0("Age ", agefilter)
+  }
+  .cleandata <- .cleandata %>% mutate(newcol=(!!as.name(histcolumn))) %>% 
+    dplyr::select(newcol)
+  h <- hist(.cleandata$newcol, breaks=20, 
+            main = paste0(deparse(substitute(data)), "\n", histcolumn, " hist - ", .agenum))
+
+  xfit <- seq(min(.cleandata$newcol), max(.cleandata$newcol), length = 40)
+  yfit <- dnorm(xfit, mean = mean(.cleandata$newcol), sd = sd(.cleandata$newcol)) 
+  yfit <- yfit * diff(h$mids[1:2]) * length(.cleandata$newcol) 
+  lines(xfit, yfit, col = "red", lwd = 2)
+  
+}
+hist.normal(coho_scales_aukelake, "Length", 1)
+hist.normal(coho_scales_aukelake, "Length", 2)
+hist.normal(coho_scales_aukelake, "Length")
+hist.normal(coho_scales_aukelake, "Q9", 1)
+hist.normal(coho_scales_aukelake, "Q9", 2)
+hist.normal(coho_scales_aukelake, "Q9")
+
+hist.normal(coho_scales_berners, "Length", 1)
+hist.normal(coho_scales_berners, "Length", 2)
+hist.normal(coho_scales_berners, "Length")
+hist.normal(coho_scales_berners, "Q9", 1)
+hist.normal(coho_scales_berners, "Q9", 2)
+hist.normal(coho_scales_berners, "Q9")
+
+hist.normal(coho_scales_hughsmith, "Length", 1)
+hist.normal(coho_scales_hughsmith, "Length", 2)
+hist.normal(coho_scales_hughsmith, "Length")
+hist.normal(coho_scales_hughsmith, "Q9", 1)
+hist.normal(coho_scales_hughsmith, "Q9", 2)
+hist.normal(coho_scales_hughsmith, "Q9")
+
+# All in all, most times there is not a large violation of normality, at least visually
+
+###### Check multivariate normality
+ggplot(coho_scales_fulldata %>% filter(Age == 1), aes(Length, Q9)) + 
+  stat_bin2d(bins = 20) +
+  coord_cartesian(xlim = c(60, 140), ylim = c(0, 1)) +
+  facet_wrap(~Location)
+
+ggplot(coho_scales_fulldata %>% filter(Age == 2), aes(Length, Q9)) + 
+  stat_bin2d(bins = 20) +
+  coord_cartesian(xlim = c(60, 140), ylim = c(0, 1)) +
+  facet_wrap(~Location)
+
+# Large differences by location. Clear correlation. Not all combinations are bad, Age2s are pretty good
