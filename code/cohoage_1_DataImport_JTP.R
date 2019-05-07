@@ -51,6 +51,7 @@ A2_JTP <- coho_scales %>%
   dplyr::select(starts_with("C"))) %>% # Select only the C cols, then bind
   gather(key = "Circulus", value = "Distance2", "C1":"C41") # turn from wide to long, each row is a zone
 
+
 coho_scales_long <- A2_JTP %>% 
   bind_cols(A1_JTP %>% 
   dplyr::select("Zone", "Variable")) %>%
@@ -58,22 +59,29 @@ coho_scales_long <- A2_JTP %>%
   mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
                            ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
   arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus 
+  mutate(PlusGrowth = ifelse(Distance2 > 0,
+                             ifelse(is.na(Zone) | Zone=="", "plusgrowth", paste0("Zone", Zone)), Distance2)) %>%
+  #JTP added this section, 5/5 to account for plus growth
   dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
-  drop_na("Distance") %>% # remove rows with NAs for Distance
+  drop_na("Distance") # remove rows with NAs for Distance
 #write.csv(write.csv(x, "data/check.csv") )
 
 jj_JTP <- coho_scales_long %>% 
-  dplyr::select(-Variable, -Zone) %>% # Drop these two cols so that spread works correctly
-  spread(key = Circulus, value = Distance) %>% # Now that data are correct, turn back to wide with "C" cols
+  dplyr::select(-Variable, -Zone, -PlusGrowth) %>% # Drop these two cols so that spread works correctly
+  spread(key = Circulus, value = Distance) %>%
   left_join(coho_scales_long %>% # Next, we'll merge with the Z cols
-            dplyr::select(-c(IMAGENAME, Location:Comment, Circulus, Distance)) %>% # exclude extra header info
-            spread(key = Variable, value = Zone), # Spread by Z cols
+              dplyr::select(-c(IMAGENAME, Location:Comment, Circulus, Distance, Zone)) %>% # exclude extra header info
+              spread(key = Variable, value = PlusGrowth), # Spread by Z cols
             by = c("Sample_ID" = "Sample_ID")) %>% # Merge with the C cols
   dplyr::select("Sample_ID", "IMAGENAME":"Comment", #Finally, reorder all the columns correctly
                 num_range("C", range = 3:41), num_range("Z", range = 3:41))
+  
+  
+
+
 #rm(A1_JTP, A2_JTP, coho_scales_long)
 #new dataset jj_JTP is without plus groups or distance from focus to C2
-write.csv(write.csv(jj_JTP, "data/check2.csv"))
+#write.csv(write.csv(jj_JTP, "data/check2.csv"))
 # NOTE: The JTP long dataframe is different slightly than the same long SEM dataframe. 
 # Runs on just three packages (tidyverse, lubridate, and here). Removed reshape functionality.
 
@@ -81,27 +89,34 @@ write.csv(write.csv(jj_JTP, "data/check2.csv"))
 #**************************************************************************************************
 #PART II: Summarize data by sample ID, zone, and circuli distance and count
 
-temp2 <- coho_scales_long %>% 
-  filter(Zone == 1 | Zone ==2) %>% 
+temp2 <- coho_scales_long %>% dplyr::select(-Zone) %>%
+  rename(Zone = PlusGrowth) %>%
+  filter(Zone == "Zone1" | Zone == "Zone2" | Zone == "plusgrowth" ) %>% 
   group_by(Sample_ID, Zone) %>% 
-  summarise(freq = length(Distance), Distance = sum (Distance)) %>% #does not include plus group or distance from focus to C2
-  mutate(Zone = replace(Zone, Zone==1, "Zone1"),
-         Zone = replace(Zone, Zone==2, "Zone2")) %>%
+  summarise(freq = length(Distance), Distance = sum (Distance)) %>% #does not include distance from focus to C2
   rename(value = Distance) 
 
+
 j_JTP <- left_join(temp2 %>% 
-                   dplyr::select(-freq) %>% 
-                   spread(Zone, value = value) %>% #summary of circuli distance by zone and sample_ID
-                   mutate(Zone2 = replace_na(Zone2, 0)), #JTP added this line Apr9,2019. Ensure that this is correct.
-                   temp2 %>% 
-                   dplyr::select(-value) %>% 
-                   rename(value = freq) %>%
-                   spread(Zone, value = value) %>% 
-                   mutate(Zone2 = replace_na(Zone2, 0)) %>% #JTP added this line Apr9,2019. Ensure that this is correct.
-                   rename(Count_Zone1 = Zone1, Count_Zone2 = Zone2), #count of circuli distance by zone and sample ID
-                   by = c("Sample_ID" = "Sample_ID")) %>%
-  left_join(jj_JTP, by = c("Sample_ID" = "Sample_ID"))
-#new dataset with zone summaries, C1, and Z1
+                      dplyr::select(-freq) %>% 
+                      spread(Zone, value = value) %>% #summary of circuli distance by zone and sample_ID
+                      mutate(Zone2 = replace_na(Zone2, 0),
+                             plusgrowth = replace_na(plusgrowth, 0)) %>% #JTP added this line Apr9,2019. Ensure that this is correct.
+                      rename(Zoneplus = plusgrowth),
+                    temp2 %>% 
+                      dplyr::select(-value) %>% 
+                      rename(value = freq) %>%
+                      spread(Zone, value = value) %>% 
+                      mutate(Zone2 = replace_na(Zone2, 0),
+                             plusgrowth = replace_na(plusgrowth, 0)) %>% #JTP added this line Apr9,2019. Ensure that this is correct.
+                      rename(Count_Zone1 = Zone1, Count_Zone2 = Zone2, 
+                             Count_Plus = plusgrowth), #count of circuli distance by zone and sample ID
+                    by = c("Sample_ID" = "Sample_ID")) %>%
+  left_join(jj_JTP, by = c("Sample_ID" = "Sample_ID")) %>% 
+  dplyr::select(Sample_ID, Zone1, Zone2, Zoneplus, Count_Zone1, Count_Zone2, Count_Plus, everything()) 
+
+
+
 
 
 #**************************************************************************************************
@@ -192,15 +207,17 @@ f_sum <- function(data, col1, col2, div){
 
 j_JTP <- j_JTP %>% 
   mutate(Q1 = ifelse(Age == 1, Count_Zone1,
-                     ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)), #circuli count (no plus group or focus to C2), 
+                     ifelse(Age == 2, Count_Zone1 + Count_Zone2, NA)), #circuli count (no plus group or focus to C2),
+         Q1plus = Count_Zone1 + Count_Zone2 + Count_Plus,
          Q2 = ifelse(Age == 1, Zone1,
                      ifelse(Age == 2, Zone1 + Zone2, NA)), # circuli distance (no plus group or focus to C2)
+         Q2plus = Zone1 + Zone2 + Zoneplus,
          Q3 = Q2 / Q1,
          Q4 = C3 / Q2, 
          Q5 = f_sum(., C3, C4, Q2), # This function sums Columns C3 thru C4 and divides by Q2
          Q6 = f_sum(., C3, C5, Q2), # This function sums Columns C3 thru C5 and divides by Q2
-         Q7 = f_sum(., C3, C6, Q2),
-         Q8 = f_sum(., C3, C7, Q2),
+         Q7 = f_sum(., C3, C6, Q2), # etc.
+         Q8 = f_sum(., C3, C7, Q2), # The end result is that Q8 is Distance to Circuli 7 (excluding Circ1&2) / tot dist (exc Circ1&2)
          Q9 = f_sum(., C3, C8, Q2),
          Q10 = f_sum(., C3, C9, Q2),
          Q11 = f_sum(., C3, C10, Q2),
@@ -264,7 +281,9 @@ j_JTP <- j_JTP %>%
          Q69 = (C40 + C39 + C38) / Q2)
          #Q70 = (C41 + C40 + C39) / Q2)  # No C41 
 
-j_JTP <- j_JTP %>% dplyr::select(Sample_ID:Q33_sum, Q1:Q69, Circuli_SFAZ_0.5:Check2) 
+
+j_JTP <- j_JTP %>% 
+  dplyr::select(Sample_ID:Q33_sum, Q1:Q69, Circuli_SFAZ_0.5:Check2) 
 
 
 #PART VIII: Create variables Q71:Q72 
@@ -303,6 +322,7 @@ coho_scales_hughsmith <- coho_scales_fulldata %>%
 coho_scales_lakes <- coho_scales_fulldata %>% 
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
   filter(Location == "HS" | Location == "AL") # both lake systems only
+
 
 
 

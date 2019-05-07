@@ -40,10 +40,10 @@ for(q in c("HS", "BR", "AL")) {
 }
 
 #caution, this takes a while to eval!
-ggpairs(coho_scales_aukelake %>% dplyr::select("Zone1":"Count_Zone2", "Year", "Age":"Q10"))
+ggpairs(coho_scales_berners %>% dplyr::select("Zone1":"Count_Zone2", "Year", "Age":"Q10"))
 
 
-ggplot(coho_scales_aukelake, aes(y = Length, group = Age) ) +
+ggplot(coho_scales_berners, aes(y = Q9, group = Age) ) +
   geom_boxplot()
 
 summary(lm(data=coho_scales_aukelake, Age~Length+Q5+Q12))
@@ -165,3 +165,12 @@ ggplot(coho_scales_fulldata %>% filter(Age == 2), aes(Length, Q9)) +
   facet_wrap(~Location)
 
 # Large differences by location. Clear correlation. Not all combinations are bad, Age2s are pretty good
+
+
+
+# Exploratory
+boxplot(Q2~Age, data = coho_scales_berners)
+boxplot(Length~Age, data = coho_scales_berners)
+summary(lm(Age ~ Length, data = coho_scales_berners))
+summary(lm(Age ~ Q2, data = coho_scales_berners))
+summary(lm(Age ~ Q9, data = coho_scales_berners))

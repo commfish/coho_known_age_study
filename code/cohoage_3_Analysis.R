@@ -109,14 +109,31 @@ testpred$predval <- predict(fit_qda, testpred)$class
 coho_scales_aukelake <- coho_scales_aukelake %>% 
   mutate(pred_age = predict(fit_qda, coho_scales_aukelake)$class,
          accuracy = ifelse(pred_age == Age, "Correct", "Incorrect"))
+coho_scales_berners <- coho_scales_berners %>% 
+  mutate(pred_age = predict(fit_qda, coho_scales_berners)$class,
+         accuracy = ifelse(pred_age == Age, "Correct", "Incorrect"))
+coho_scales_hughsmith <- coho_scales_hughsmith %>% 
+  mutate(pred_age = predict(fit_qda, coho_scales_hughsmith)$class,
+         accuracy = ifelse(pred_age == Age, "Correct", "Incorrect"))
 
+write.csv(coho_scales_berners, "berners.csv")
 
 ggplot() + 
-  geom_tile(data = testpred %>% filter(Location == "AL"), aes(x=Q9, y=Length, fill=predval)) +
-  geom_text(data = coho_scales_aukelake, aes(x=Q9, y=Length, label=Age, color=accuracy)) + 
+  geom_tile(data = testpred %>% filter(Location == "BR"), aes(x=Q9, y=Length, fill=predval)) +
+  geom_text(data = coho_scales_berners, aes(x=Q9, y=Length, label=Age, color=accuracy)) + 
   scale_color_manual(values = c("black", "red"), guide=FALSE) +
-  scale_fill_manual(name="Predicted\nAge", values = c("#a5d3ca", "#ffdeb2")) +
+  scale_fill_manual(name="Predicted\nAge", values = c("#89b6ff", "#ff9260")) +
   scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
-  ggtitle("Auke Lake")
+  ggtitle("Berners River")
+
+ggplot() + 
+  geom_tile(data = testpred %>% filter(Location == "HS"), aes(x=Q9, y=Length, fill=predval)) +
+  geom_text(data = coho_scales_hughsmith, aes(x=Q9, y=Length, label=Age, color=accuracy)) + 
+  scale_color_manual(values = c("black", "red"), guide=FALSE) +
+  scale_fill_manual(name="Predicted\nAge", values = c("#89b6ff", "#ff9260")) +
+  scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
+  ggtitle("Hugh Smith")
 
 
+
+coho_scales_hughsmith %>% group_by(Age, accuracy) %>% tally()
