@@ -219,6 +219,7 @@ j_JTP <- j_JTP %>%
          Q7 = f_sum(., C3, C6, Q2), # etc.
          Q8 = f_sum(., C3, C7, Q2), # The end result is that Q8 is Distance to Circuli 7 (excluding Circ1&2) / tot dist (exc Circ1&2)
          Q9 = f_sum(., C3, C8, Q2),
+         Q9abs = Q9 * Q2,
          Q10 = f_sum(., C3, C9, Q2),
          Q11 = f_sum(., C3, C10, Q2),
          Q12 = f_sum(., C3, C11, Q2),

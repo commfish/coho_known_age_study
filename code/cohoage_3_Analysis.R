@@ -16,7 +16,7 @@
 #dispersion than others, cases will tend to be overclassified in it.
 
 #function betadisper in package vegan
-#MASS packake LDA and QDA or cluster analysis?
+#MASS package LDA and QDA or cluster analysis?
 
 
 
@@ -116,7 +116,6 @@ coho_scales_hughsmith <- coho_scales_hughsmith %>%
   mutate(pred_age = predict(fit_qda, coho_scales_hughsmith)$class,
          accuracy = ifelse(pred_age == Age, "Correct", "Incorrect"))
 
-write.csv(coho_scales_berners, "berners.csv")
 
 ggplot() + 
   geom_tile(data = testpred %>% filter(Location == "BR"), aes(x=Q9, y=Length, fill=predval)) +
@@ -137,3 +136,53 @@ ggplot() +
 
 
 coho_scales_hughsmith %>% group_by(Age, accuracy) %>% tally()
+coho_scales_berners %>% group_by(Age, accuracy) %>% tally()
+
+
+
+######### TRANSFORMED
+# Explore using transformed versions of the variables
+
+coho_scales_fulldata <- coho_scales_fulldata %>%
+  mutate(Q2plus.trans = asin(sqrt(Q2plus)),
+         Q9abs.trans = asin(sqrt(Q9abs)))
+
+coho_scales_berners1 <- coho_scales_fulldata %>% filter(Location == "BR")
+coho_scales_hughsmith1 <- coho_scales_fulldata %>% filter(Location == "HS")
+
+#trans
+fit_qda1 <- qda(as.factor(Age) ~ Location + Q2plus.trans + Q9abs.trans, data=coho_scales_fulldata,
+                prior=c(0.66,0.34)) #prior prob 66% fish are Age1 (leave blank for uninformed)
+
+
+testpred1 <- expand.grid(Q9abs.trans=seq(min(coho_scales_fulldata$Q9abs.trans), 
+                                         max(coho_scales_fulldata$Q9abs.trans), length.out = 100), 
+                         Q2plus.trans=seq(min(coho_scales_fulldata$Q2plus.trans), 
+                                          max(coho_scales_fulldata$Q2plus.trans), length.out = 100),
+                         Location = c("AL", "HS", "BR"))
+
+testpred1$predval <- predict(fit_qda1, testpred1)$class
+
+
+coho_scales_berners1 <- coho_scales_berners1 %>% 
+  mutate(pred_age1 = predict(fit_qda1, coho_scales_berners1)$class,
+         accuracy = ifelse(pred_age1 == Age, "Correct", "Incorrect"))
+
+coho_scales_hughsmith1 <- coho_scales_hughsmith1 %>% 
+  mutate(pred_age1 = predict(fit_qda1, coho_scales_hughsmith1)$class,
+         accuracy = ifelse(pred_age1 == Age, "Correct", "Incorrect"))
+
+coho_scales_berners %>% group_by(accuracy) %>% tally() 
+coho_scales_berners1 %>% group_by(accuracy) %>% tally() #Slight improvement in accuracy
+
+coho_scales_hughsmith %>% group_by(Age, accuracy) %>% tally()
+coho_scales_hughsmith1 %>% group_by(Age, accuracy) %>% tally() #Slight improvement in accuracy
+
+
+coho_scales_hughsmith1 %>% group_by(Age, accuracy) %>% tally() %>% spread(accuracy, n) %>%
+  mutate(PercentCorrect = Correct / (Correct + Incorrect)) 
+
+coho_scales_berners1 %>% group_by(Age, accuracy) %>% tally() %>% spread(accuracy, n) %>%
+  mutate(PercentCorrect = Correct / (Correct + Incorrect)) 
+
+
