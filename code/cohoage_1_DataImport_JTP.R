@@ -34,7 +34,9 @@ convyear <- function(x, year=2000){ # This function converts year correctly
 # First, read in the data and make sure that the dates import correctly. 
 coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE) %>%
   mutate(Date = ymd(convyear(strptime(Date, format = "%d-%b-%Y", tz="US/Alaska"), 
-                             year(strptime("10-Jun-05", format = "%d-%b-%Y"))))) %>%
+                             year(strptime("10-Jun-05", format = "%d-%b-%Y")))),
+         dayofyear = yday(Date)) %>%
+  dplyr::select(IMAGENAME:Date, dayofyear, everything()) %>%
   drop_na(Data_Pairs) # Exclude rows with no distances measured
 
 
@@ -64,6 +66,8 @@ coho_scales_long <- A2_JTP %>%
   #JTP added this section, 5/5 to account for plus growth
   dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
   drop_na("Distance") # remove rows with NAs for Distance
+rm(A1_JTP, A2_JTP)
+
 #write.csv(write.csv(x, "data/check.csv") )
 
 jj_JTP <- coho_scales_long %>% 
