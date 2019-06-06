@@ -5,6 +5,7 @@ library(here)
 library(mgcv)
 library(mvnormtest)
 library(HH)
+library(klaR)
 source("code/functions.R")
 
 # Run previous script to import data
@@ -49,8 +50,7 @@ for(q in c("HS", "BR", "AL")) { # Print a few correlation plots between variable
 # Exclude Auke Lake ("AL") for most analyses. But can be useful to see how it performs. 
 
 
-# --------------------------------------------#
-### Exploratory Modeling ###
+# Exploratory Modeling
 # Explore a few plots and model types to get a general feel for the data
 ggplot(coho_scales_berners, aes(y = Q9, group = Age)) +
   geom_boxplot() #clear difference in Q9 between ages
@@ -68,9 +68,7 @@ summary(lm(Age ~ Length, data = coho_scales_berners))
 summary(lm(Age ~ Q2, data = coho_scales_berners))
 summary(lm(Age ~ Q9, data = coho_scales_berners))
 
-
-# --------------------------------------------#
-### Correlation ###
+# Correlation 
 test1 <- coho_scales_aukelake %>% filter(!is.na(Length)) #remove NAs from Length to test corr with other vars
 cor(test1$Q5, test1$Length) # High corr
 cor(test1$Q9, test1$Length) # Top predictor variables are very correlated
@@ -81,9 +79,7 @@ rm(test1)
 cor(coho_scales_berners$Q9abs, coho_scales_berners$Q2plus)
 cor(coho_scales_hughsmith$Q9abs, coho_scales_hughsmith$Q2plus)
 
-
-# --------------------------------------------#
-### Rough Histograms ###
+# Rough Histograms 
 hist(coho_scales_aukelake$Length, breaks=15)
 hist((coho_scales_aukelake %>% filter(Age==1))$Length, breaks=15)
 hist((coho_scales_aukelake %>% filter(Age==2))$Length, breaks=15)
@@ -93,9 +89,7 @@ hist(log((coho_scales_aukelake %>% filter(Age==1))$Length), breaks=15)
 hist(log((coho_scales_aukelake %>% filter(Age==2))$Length), breaks=15)
 hist(log(coho_scales_aukelake$Q9), breaks=15)
 
-
-# --------------------------------------------#
-#### NORMALITY ASSESSMENTS ####
+# NORMALITY ASSESSMENTS 
 coho_scales_berners2 <- coho_scales_fulldata %>% filter(Location == "BR")
 coho_scales_hughsmith2 <- coho_scales_fulldata %>% filter(Location == "HS")
 qqnorm((coho_scales_berners2 %>% filter(Age==1))$Q9abs); qqline((coho_scales_berners2 %>% filter(Age==1))$Q9abs)
@@ -108,9 +102,7 @@ qqnorm((coho_scales_hughsmith2 %>% filter(Age==2))$Q9abs); qqline((coho_scales_h
 qqnorm((coho_scales_hughsmith2 %>% filter(Age==1))$Q2plus); qqline((coho_scales_hughsmith2 %>% filter(Age==1))$Q2plus)
 qqnorm((coho_scales_hughsmith2 %>% filter(Age==2))$Q2plus); qqline((coho_scales_hughsmith2 %>% filter(Age==2))$Q2plus)
 
-
-# --------------------------------------------#
-#### NORMALITY TESTING ####
+# NORMALITY TESTING 
 mvnormtest::mshapiro.test(t(coho_scales_aukelake %>% dplyr::select(Age, Length, Q2, Q5, Q9) %>% na.omit %>% as.matrix()))
 
 shapiro.test(coho_scales_aukelake$Q9) # Not normal
@@ -147,7 +139,6 @@ shapiro.test(asin(sqrt(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 
 
 #recommend transforming with arcsine square root. But first explore everything without transformations, save for last.
 
-
 # Visualize what we're testing
 hist((coho_scales_berners$Length[coho_scales_berners$Age == 1]), breaks = 25)
 
@@ -166,10 +157,7 @@ hov(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
 hovPlot(Q5~as.factor(Age), data=coho_scales_aukelake)
 hovPlot(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
 
-
-# --------------------------------------------#
-### Visualize Departures from Normality ###
-
+#Visualize Departures from Normality
 hist.normal(coho_scales_aukelake, "Length", 1)
 hist.normal(coho_scales_aukelake, "Length", 2)
 hist.normal(coho_scales_aukelake, "Length")
@@ -203,9 +191,6 @@ hist.normal(coho_scales_hughsmith, "Q9abs", 2)
 
 
 # All in all, most times there is not a large violation of normality, at least visually
-
-
-# --------------------------------------------#
 ### Check Multivariate Normality ###
 ggplot(coho_scales_fulldata %>% filter(Age == 1), aes(Length, Q9)) + 
   stat_bin2d(bins = 20) +
@@ -219,9 +204,7 @@ ggplot(coho_scales_fulldata %>% filter(Age == 2), aes(Length, Q9)) +
 
 # Large differences by location. Clear correlation. Not all combinations are bad, Age2s are pretty good
 
-
-
-#### EDA OVERVIEW SUMMARY ####-----------------
+# EDA OVERVIEW SUMMARY
 # Very large differences between locations (model will need to account for location)
 # Many of the variables are approximately normal but fail the 'strict' conditions of tests
 # Variance is not even between Age 1 & 2
@@ -236,16 +219,8 @@ ggplot(coho_scales_fulldata %>% filter(Age == 2), aes(Length, Q9)) +
 # absolute distance to Circuli 8 (Q9abs), instead of relative distance to Circuli 8 (Q9)
 # Thus, I recommend using top model as Age ~ Q9abs + Q2plus
 
-
-# --------------------------------------------#
-
-
-
-# --------------------------------------------#
-#### EDA MODELING #### -----------------------
-
-
-#### LDA & QDA MODELING ####
+#EDA MODELING 
+# LDA & QDA MODELING 
 # Linear and Quadratic Discriminant Analysis (LDA & QDA) 
 # Following approach from: https://www.statmethods.net/advstats/discriminant.html
 fit_lda <- lda(Age ~ Location + Length + Q9, data=coho_scales_fulldata, #Q9 chosen after extensive testing
