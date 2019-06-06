@@ -18,18 +18,11 @@
 # Define "Circuli"
 # Define "Zones"
 
-#**************************************************************************************************
 #PART I:Import data and create dataset by one row/circuli and one row/zone instead of one row/fish
 library(here)
 library(tidyverse)
 library(lubridate)
-
-
-convyear <- function(x, year=2000){ # This function converts year correctly
-  m <- year(x) %% 100
-  year(x) <- ifelse(m > year %% 100, 1900+m, 2000+m)
-  x
-}
+source("code/functions.R")
 
 # First, read in the data and make sure that the dates import correctly. 
 coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE) %>%
@@ -88,7 +81,6 @@ jj_JTP <- coho_scales_long %>%
 # NOTE: The JTP long dataframe is different slightly than the same long SEM dataframe. 
 # Runs on just three packages (tidyverse, lubridate, and here). Removed reshape functionality.
 
-#**************************************************************************************************
 #PART II: Summarize data by sample ID, zone, and circuli distance and count
 temp2 <- coho_scales_long %>% dplyr::select(-Zone) %>%
   rename(Zone = PlusGrowth) %>%
@@ -115,7 +107,6 @@ j_JTP <- left_join(temp2 %>%
   left_join(jj_JTP, by = c("Sample_ID" = "Sample_ID")) %>% 
   dplyr::select(Sample_ID, Zone1, Zone2, Zoneplus, Count_Zone1, Count_Zone2, Count_Plus, everything()) 
 
-#**************************************************************************************************
 # PART III: Calculate step#1 for variables Q32 and Q33
 # PART IV: Merge full dataset with summarized dataset by Sample_ID
 # PART V: Calculate step#1 for variables Q34 & Q35
@@ -152,8 +143,7 @@ j_JTP <- j_JTP %>%
             Circuli_SFAZ_0.75 = sum(Circuli_SFAZ_0.75)) %>% # Variable Q35 
   left_join(j_JTP, by = c("Sample_ID" = "Sample_ID")) %>%
   dplyr::select(Sample_ID, Zone1:Z40, Q32_sum, Q33_sum, Circuli_SFAZ_0.5, Circuli_SFAZ_0.75) # reorganize order
-#**************************************************************************************************
-#CHECK THROUGH HERE
+
 #PART VI: Data check 
 # If age 1 there must be zone 1 measurements also zone 2 is optional if plus is present. 
 # There must not be any zones but 1 or 2.
@@ -174,27 +164,10 @@ j_JTP %>% filter(Check == "Need to Check" | Check1 == "Need to Check" | Check2 =
 j_JTP <- j_JTP %>% 
   dplyr::select(-Check)
 
-#**************************************************************************************************
-
-#PART VII: Calculate Variables (See Linear Discriminant Analysis-Project Overview document in S:\Region1Shared-DCF\Research\Salmon\Coho\Linear Discriminant Analysis.doc for list of variables)
+#PART VII: Calculate Variables (See Linear Discriminant Analysis-Project Overview document
+#in S:\Region1Shared-DCF\Research\Salmon\Coho\Coho_Known_Age_study\coho_known_age_study\references\reports\Linear Discriminant Analysis.doc for list of variables)
 #Note C5 distance is distance from C4 to C5 circulus, therefore to start at C4 you need to start at C5
-options("na.actions"=na.omit)
-
-f_sum <- function(data, col1, col2, div){
-  col1 = enquo(col1)
-  col2 = enquo(col2)
-  div = enquo(div)
-  
-  data %>% 
-    dplyr::select(!!col1:!!col2) %>% 
-    apply(1, sum, na.rm=T) %>% 
-    as.data.frame %>% 
-    bind_cols(data) %>% 
-    transmute(temp = . / !!div) %>% 
-    .$temp
-} # Sum function from Ben Williams
-
-
+options("na.actions"= na.omit)
 
 j_JTP <- j_JTP %>% 
   mutate(Q1 = ifelse(Age == 1, Count_Zone1,
@@ -279,7 +252,6 @@ j_JTP <- j_JTP %>%
 
 
 #PART VIII: Create variables Q71:Q72 
-
 coho_scales_fulldata <- j_JTP %>% 
   dplyr::select("Sample_ID", "C3":"C40", "Q3") %>% # educated guess as to using Q3 since it appears to be called later
   gather(key = "C_num", value = "Distance", "C3":"C40") %>% 
