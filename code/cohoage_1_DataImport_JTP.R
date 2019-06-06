@@ -43,32 +43,34 @@ coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALS
 A1_JTP <- coho_scales %>% 
   dplyr::select("IMAGENAME":"Comment") %>% # Include only the first 11 columns
   bind_cols(coho_scales %>% 
-            dplyr::select(starts_with("Z"))) %>% # Select only the Z columns, then put back together
+              dplyr::select(starts_with("Z"))) %>% # Select only the Z columns, then put back together
   gather(key = "Variable", value = "Zone", "Z1":"Z41") # turn from wide to long, each row is a zone
 
 A2_JTP <- coho_scales %>% 
   dplyr::select("IMAGENAME":"Comment") %>% # Include only the first 11 columns
   bind_cols(coho_scales %>% 
-  dplyr::select(-"Comment") %>% 
-  dplyr::select(starts_with("C"))) %>% # Select only the C cols, then bind
+              dplyr::select(-"Comment") %>% 
+              dplyr::select(starts_with("C"))) %>% # Select only the C cols, then bind
   gather(key = "Circulus", value = "Distance2", "C1":"C41") # turn from wide to long, each row is a zone
-
 
 coho_scales_long <- A2_JTP %>% 
   bind_cols(A1_JTP %>% 
-  dplyr::select("Zone", "Variable")) %>%
+              dplyr::select("Zone", "Variable")) %>%
   filter(Circulus != "C1", Circulus != "C2", Age != 3) %>% # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
-  mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
-                           ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
-  arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus 
+  #mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
+  #                         ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
+  arrange(Sample_ID, Circulus)%>% # Sort (order) the data by Sample_ID then Circulus 
   mutate(PlusGrowth = ifelse(Distance2 > 0,
-                             ifelse(is.na(Zone) | Zone=="", "plusgrowth", paste0("Zone", Zone)), Distance2)) %>%
+                             ifelse(is.na(Zone) | Zone=="", "plusgrowth", paste0("Zone", Zone)), Distance2))%>%
   #JTP added this section, 5/5 to account for plus growth
-  dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
-  drop_na("Distance") # remove rows with NAs for Distance
+  #dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
+  drop_na("Distance2") %>%
+  mutate(Distance = Distance2) %>%# remove rows with NAs for Distance
+  dplyr::select(-"Distance2") %>%
+  dplyr::select("IMAGENAME", "Sample_ID",	"Location",	"Year",	"Date",	"dayofyear"	,"Floy_No",	"Tag_Code",	"Age"	,"Length",
+                "Sublocation",	"Comment",	"Circulus",	"Zone","Variable",	"Distance","PlusGrowth")
 rm(A1_JTP, A2_JTP)
-
-#write.csv(write.csv(x, "data/check.csv") )
+write.csv(write.csv(coho_scales_long, "data/check.csv") )
 
 jj_JTP <- coho_scales_long %>% 
   dplyr::select(-Variable, -Zone, -PlusGrowth) %>% # Drop these two cols so that spread works correctly
