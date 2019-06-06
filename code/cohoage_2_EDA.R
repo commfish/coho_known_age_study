@@ -1,4 +1,4 @@
-#load libraries
+# load libraries
 library(corrplot)
 library(GGally)
 library(here)
@@ -11,7 +11,7 @@ source("code/functions.R")
 # Run previous script to import data
 source(here::here("code/cohoage_1_DataImport_JTP.R"))
 
-## Correlation between variables
+# Correlation between variables
 for(q in c("HS", "BR", "AL")) { # Print a few correlation plots between variables
   print(corrplot.mixed(cor(coho_scales_fulldata %>%
                      filter(Location == q) %>%
@@ -28,7 +28,7 @@ for(q in c("HS", "BR", "AL")) { # Print a few correlation plots between variable
   .temp4 <- as.data.frame(.temp4)
   for(i in 2:28){.temp4[,i] <- shift(.temp4[,i], i-1)}
   
-  .temp4["rownum"] <- seq(1:28)
+  .temp4["rownum"] <- seq(1:29)
   .temp4 <- .temp4 %>% gather("Qnum", "corr", Q4:Q31)
   
   print(ggplot(.temp4, aes(x=rownum, y = corr, color=Qnum)) +
@@ -139,7 +139,7 @@ shapiro.test(asin(sqrt(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 
 
 #recommend transforming with arcsine square root. But first explore everything without transformations, save for last.
 
-# Visualize what we're testing
+# Homogeneity of variances Tests
 hist((coho_scales_berners$Length[coho_scales_berners$Age == 1]), breaks = 25)
 
 bartlett.test(log(Q5)~Age, data=coho_scales_aukelake) 
@@ -151,10 +151,24 @@ cov(coho_scales_aukelake$Q5, coho_scales_aukelake$Age)
 cov(coho_scales_aukelake$Length[!is.na(coho_scales_aukelake$Length)], 
     coho_scales_aukelake$Age[!is.na(coho_scales_aukelake$Length)])
 
-HH::hov(Q9~as.factor(Age), data=coho_scales_aukelake)
-hov(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
+HH::hov(Q9abs~as.factor(Age), data=coho_scales_aukelake) #p >0.05 homogeneity of variances (Brown Forsyth test)
+HH::hov(Q9abs~as.factor(Age), data=coho_scales_berners)
+HH::hov(Q9abs~as.factor(Age), data=coho_scales_hughsmith)
 
-hovPlot(Q5~as.factor(Age), data=coho_scales_aukelake)
+HH::hov(Q2plus~as.factor(Age), data=coho_scales_aukelake)
+HH::hov(Q2plus~as.factor(Age), data=coho_scales_berners)
+HH::hov(Q2plus~as.factor(Age), data=coho_scales_hughsmith)
+
+HH::hov(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
+
+hovPlot(Q2plus~as.factor(Age), data=coho_scales_aukelake)
+hovPlot(Q2plus~as.factor(Age), data=coho_scales_berners)
+hovPlot(Q2plus~as.factor(Age), data=coho_scales_hughsmith)
+
+hovPlot(Q9abs~as.factor(Age), data=coho_scales_aukelake)
+hovPlot(Q9abs~as.factor(Age), data=coho_scales_berners)
+hovPlot(Q9abs~as.factor(Age), data=coho_scales_hughsmith)
+
 hovPlot(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
 
 #Visualize Departures from Normality
@@ -188,10 +202,8 @@ hist.normal(coho_scales_hughsmith, "Q9")
 hist.normal(coho_scales_hughsmith, "Q9abs", 1)
 hist.normal(coho_scales_hughsmith, "Q9abs", 2)
 
-
-
 # All in all, most times there is not a large violation of normality, at least visually
-### Check Multivariate Normality ###
+# Check Multivariate Normality 
 ggplot(coho_scales_fulldata %>% filter(Age == 1), aes(Length, Q9)) + 
   stat_bin2d(bins = 20) +
   coord_cartesian(xlim = c(60, 140), ylim = c(0, 1)) +
@@ -232,7 +244,6 @@ sum(diag(prop.table(table(coho_scales_fulldata$Age[!is.na(coho_scales_fulldata$L
 #Performs pretty well! 94% accuracy
 klaR::partimat(as.factor(Age)~Length+Q9,data=coho_scales_fulldata,method="lda") 
 
-
 # Perhaps model could be improved by accounting for quadratic curvature
 fit_qda <- qda(as.factor(Age) ~ Location + Length + Q9, data=coho_scales_fulldata,
                prior=c(0.66,0.34)) #prior prob 66% fish are Age1 (leave blank for uninformed)
@@ -249,11 +260,10 @@ coho_scales_fulldata <- coho_scales_fulldata %>%
          accuracy = ifelse(pred_age == Age, "Correct", "Incorrect"))
 coho_scales_fulldata %>% group_by(accuracy) %>% tally() #93.5% accuracy, even inc Auke Lake
 
-#### Summary
 # Use QDA for analysis. QDA fits better and has better data assumptions. 
 
 
-### Train / Test QDA Analysis
+# Train / Test QDA Analysis
 # Same analysis but uses test and train subsets
 # This function takes a dataframe, splits it into two portions (train and test)
 # and then saves those dataframes. It will create two new dataframes at the end
@@ -288,10 +298,6 @@ rm(list = c(ls(pattern = "._train"), ls(pattern = "._test")), "err_rate")
 # Summary, similar results as without using train/test datasets
 # Our sample size is large enough that we don't necessarily have to use train/test method
 
-
-
-# --------------------------------------------#
-
 # Manually recreate partimat() plot in ggplot
 testpred <- expand.grid(Q9=seq(min(coho_scales_fulldata$Q9), max(coho_scales_fulldata$Q9), length.out = 100), 
                         Length=seq(min(coho_scales_fulldata$Length, na.rm = TRUE), max(coho_scales_fulldata$Length, na.rm = TRUE), by=1),
@@ -309,7 +315,6 @@ coho_scales_hughsmith <- coho_scales_hughsmith %>%
   mutate(pred_age = predict(fit_qda, coho_scales_hughsmith)$class,
          accuracy = ifelse(pred_age == Age, "Correct", "Incorrect"))
 
-
 ggplot() + 
   geom_tile(data = testpred %>% filter(Location == "BR"), aes(x=Q9, y=Length, fill=predval)) +
   geom_text(data = coho_scales_berners, aes(x=Q9, y=Length, label=Age, color=accuracy)) + 
@@ -326,20 +331,17 @@ ggplot() +
   scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
   ggtitle("Hugh Smith")
 
-
 coho_scales_hughsmith %>% group_by(Age, accuracy) %>% tally()
 coho_scales_berners %>% group_by(Age, accuracy) %>% tally()
 # Very good accuracy!
 
-
-
-######### TRANSFORMED
+# TRANSFORMED
 # Explore using transformed versions of the variables
 # To address concerns of normality, we should transform variables, using arcsine sqrt
-
 coho_scales_fulldata <- coho_scales_fulldata %>%
   mutate(Q2plus_trans = asin(sqrt(Q2plus)),
          Q9abs_trans = asin(sqrt(Q9abs)))
+write.csv(write.csv(coho_scales_fulldata, "data/check.csv"))
 
 coho_scales_berners1 <- coho_scales_fulldata %>% filter(Location == "BR")
 coho_scales_hughsmith1 <- coho_scales_fulldata %>% filter(Location == "HS")
@@ -349,9 +351,9 @@ fit_qda1 <- qda(as.factor(Age) ~ Location + Q2plus_trans + Q9abs_trans, data=coh
                 prior=c(0.66,0.34)) #prior prob 66% fish are Age1 (leave blank for uninformed)
 
 
-testpred1 <- expand.grid(Q9abs_trans =seq(min(coho_scales_fulldata$Q9abs_trans), 
+testpred1 <- expand.grid(Q9abs_trans =seq(min(coho_scales_fulldata$Q9abs_trans),
                                          max(coho_scales_fulldata$Q9abs_trans), length.out = 100), 
-                         Q2plus_trans=seq(min(coho_scales_fulldata$Q2plus_trans), 
+                         Q2plus_trans=seq(min(coho_scales_fulldata$Q2plus_trans),
                                           max(coho_scales_fulldata$Q2plus_trans), length.out = 100),
                          Location = c("AL", "HS", "BR"))
 
@@ -379,12 +381,6 @@ coho_scales_berners1 %>% group_by(Age, accuracy) %>% tally() %>% spread(accuracy
   mutate(PercentCorrect = Correct / (Correct + Incorrect)) 
 
 
-
-
-
-
-
-###############
 #What sorts of things cause our inaccuracy 
 coho_scales_berners1 <- coho_scales_berners1 %>%
   mutate(acc1 = ifelse(accuracy == "Correct", 1, 0))
@@ -403,11 +399,6 @@ summary(lm(acc1 ~ Q1, data = coho_scales_hughsmith1)) # very signif
 summary(lm(acc1 ~ Q3, data = coho_scales_hughsmith1)) # insig, also multicollinearity
 summary(lm(acc1 ~ Year, data = coho_scales_hughsmith1)) # insig
 
-
-
-
-
-#### FINAL SUMMARY #### 
 # Recommend using variables Q2plus and Q9abs to predict age
 # Use a QDA to address homoscedascity 
 # Transform data using arcsine sqrt
