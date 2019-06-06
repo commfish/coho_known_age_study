@@ -243,9 +243,7 @@ j_JTP <- j_JTP %>%
          Q66 = (C37 + C36 + C35) / Q2,
          Q67 = (C38 + C37 + C36) / Q2,
          Q68 = (C39 + C38 + C37) / Q2,
-         Q69 = (C40 + C39 + C38) / Q2)
-         #Q70 = (C41 + C40 + C39) / Q2)  # No C41 
-
+         Q69 = (C40 + C39 + C38) / Q2) 
 
 j_JTP <- j_JTP %>% 
   dplyr::select(Sample_ID:Q33_sum, Q1:Q69, Circuli_SFAZ_0.5:Check2) 
