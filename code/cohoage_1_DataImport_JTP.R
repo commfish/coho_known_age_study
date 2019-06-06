@@ -24,7 +24,7 @@ library(tidyverse)
 library(lubridate)
 source("code/functions.R")
 
-# First, read in the data and make sure that the dates import correctly. 
+# Import data
 coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE) %>%
   mutate(Date = ymd(convyear(strptime(Date, format = "%d-%b-%Y", tz="US/Alaska"), 
                              year(strptime("10-Jun-05", format = "%d-%b-%Y")))),
@@ -50,13 +50,10 @@ coho_scales_long <- A2_JTP %>%
   bind_cols(A1_JTP %>% 
               dplyr::select("Zone", "Variable")) %>%
   filter(Circulus != "C1", Circulus != "C2", Age != 3) %>% # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
-  #mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
-  #                         ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
   arrange(Sample_ID, Circulus)%>% # Sort (order) the data by Sample_ID then Circulus 
   mutate(PlusGrowth = ifelse(Distance2 > 0,
                              ifelse(is.na(Zone) | Zone=="", "plusgrowth", paste0("Zone", Zone)), Distance2))%>%
   #JTP added this section, 5/5 to account for plus growth
-  #dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
   drop_na("Distance2") %>%
   mutate(Distance = Distance2) %>%# remove rows with NAs for Distance
   dplyr::select(-"Distance2") %>%
@@ -248,7 +245,6 @@ j_JTP <- j_JTP %>%
 j_JTP <- j_JTP %>% 
   dplyr::select(Sample_ID:Q33_sum, Q1:Q69, Circuli_SFAZ_0.5:Check2) 
 
-
 #PART VIII: Create variables Q71:Q72 
 coho_scales_fulldata <- j_JTP %>% 
   dplyr::select("Sample_ID", "C3":"C40", "Q3") %>% # educated guess as to using Q3 since it appears to be called later
@@ -265,10 +261,8 @@ coho_scales_fulldata <- j_JTP %>%
             Q72 = sum(Count_Q3_1.25)) %>%
   left_join(j_JTP, by = c("Sample_ID" = "Sample_ID")) %>% 
   dplyr::select("Sample_ID", "Zone1":"Q69", "Q71":"Q72", "Circuli_SFAZ_0.5":"Check2", -"Sum_Zones")
-#rm()
 
 #subset datasets for different analyses
-#AL_BR_HS <- coho_scales_fulldata %>% dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44")
 coho_scales_aukelake <- coho_scales_fulldata %>% 
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
   filter(Location == "AL") #lake system (Auke Lake)
