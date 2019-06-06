@@ -70,7 +70,7 @@ coho_scales_long <- A2_JTP %>%
   dplyr::select("IMAGENAME", "Sample_ID",	"Location",	"Year",	"Date",	"dayofyear"	,"Floy_No",	"Tag_Code",	"Age"	,"Length",
                 "Sublocation",	"Comment",	"Circulus",	"Zone","Variable",	"Distance","PlusGrowth")
 rm(A1_JTP, A2_JTP)
-write.csv(write.csv(coho_scales_long, "data/check.csv") )
+#write.csv(write.csv(coho_scales_long, "data/check.csv")) #outputs data for manual cehgck against original data
 
 jj_JTP <- coho_scales_long %>% 
   dplyr::select(-Variable, -Zone, -PlusGrowth) %>% # Drop these two cols so that spread works correctly
@@ -82,26 +82,20 @@ jj_JTP <- coho_scales_long %>%
   dplyr::select("Sample_ID", "IMAGENAME":"Comment", #Finally, reorder all the columns correctly
                 num_range("C", range = 3:41), num_range("Z", range = 3:41))
   
-  
-
-
 #rm(A1_JTP, A2_JTP, coho_scales_long)
 #new dataset jj_JTP is without plus groups or distance from focus to C2
 #write.csv(write.csv(jj_JTP, "data/check2.csv"))
 # NOTE: The JTP long dataframe is different slightly than the same long SEM dataframe. 
 # Runs on just three packages (tidyverse, lubridate, and here). Removed reshape functionality.
 
-
 #**************************************************************************************************
 #PART II: Summarize data by sample ID, zone, and circuli distance and count
-
 temp2 <- coho_scales_long %>% dplyr::select(-Zone) %>%
   rename(Zone = PlusGrowth) %>%
   filter(Zone == "Zone1" | Zone == "Zone2" | Zone == "plusgrowth" ) %>% 
   group_by(Sample_ID, Zone) %>% 
   summarise(freq = length(Distance), Distance = sum (Distance)) %>% #does not include distance from focus to C2
   rename(value = Distance) 
-
 
 j_JTP <- left_join(temp2 %>% 
                       dplyr::select(-freq) %>% 
@@ -121,17 +115,10 @@ j_JTP <- left_join(temp2 %>%
   left_join(jj_JTP, by = c("Sample_ID" = "Sample_ID")) %>% 
   dplyr::select(Sample_ID, Zone1, Zone2, Zoneplus, Count_Zone1, Count_Zone2, Count_Plus, everything()) 
 
-
-
-
-
 #**************************************************************************************************
 # PART III: Calculate step#1 for variables Q32 and Q33
 # PART IV: Merge full dataset with summarized dataset by Sample_ID
 # PART V: Calculate step#1 for variables Q34 & Q35
-
-
-
 j_JTP <- j_JTP %>%
   dplyr::select(Sample_ID:C40) %>% 
   gather(key = "Varr", value = "Value", "C3":"C40") %>%
@@ -151,7 +138,7 @@ j_JTP <- j_JTP %>%
          SFAZ_0.75 = SFAZ * 0.75) %>% # Distance of 3/4 of SFAZ
   arrange(Sample_ID, Circulus) %>%
   group_by(Sample_ID) %>%
-  mutate(Cum.sum_0.5 = cumsum(Distance) ) %>% # Take cum distance by Sample_ID, inner to outer (used for SFAZ0.5)
+  mutate(Cum.sum_0.5 = cumsum(Distance)) %>% # Take cumsum distance by Sample_ID, inner to outer (used for SFAZ0.5)
   arrange(Sample_ID, -Circulus) %>%
   group_by(Sample_ID) %>%
   mutate(Cum.sum_0.75 = cumsum(Distance)) %>% # Take cum distance by Sample_ID, outer to inner (used for SFAZ0.75)
@@ -165,10 +152,8 @@ j_JTP <- j_JTP %>%
             Circuli_SFAZ_0.75 = sum(Circuli_SFAZ_0.75)) %>% # Variable Q35 
   left_join(j_JTP, by = c("Sample_ID" = "Sample_ID")) %>%
   dplyr::select(Sample_ID, Zone1:Z40, Q32_sum, Q33_sum, Circuli_SFAZ_0.5, Circuli_SFAZ_0.75) # reorganize order
-
-
 #**************************************************************************************************
-
+#CHECK THROUGH HERE
 #PART VI: Data check 
 # If age 1 there must be zone 1 measurements also zone 2 is optional if plus is present. 
 # There must not be any zones but 1 or 2.
