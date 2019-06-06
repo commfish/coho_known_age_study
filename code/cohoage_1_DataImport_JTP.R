@@ -32,6 +32,11 @@ coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALS
   dplyr::select(IMAGENAME:Date, dayofyear, everything()) %>%
   drop_na(Data_Pairs) # Exclude rows with no distances measured
 
+coho_scales %>% 
+  mutate (include = ifelse(Sample_ID == 'BR04-0453', 0, 1))-> coho_scales
+coho_scales %>% 
+  filter (include == 1) %>%
+  dplyr::select(-"include") -> coho_scales
 
 A1_JTP <- coho_scales %>% 
   dplyr::select("IMAGENAME":"Comment") %>% # Include only the first 11 columns
@@ -279,6 +284,7 @@ coho_scales_lakes <- coho_scales_fulldata %>%
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
   filter(Location == "HS" | Location == "AL") # both lake systems only
 
+write.csv(write.csv(coho_scales_fulldata, "data/check.csv")) #outputs data for manual cehgck against original data
 
 
 
