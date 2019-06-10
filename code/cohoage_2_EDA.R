@@ -453,6 +453,44 @@ coho_scales_berners1 %>% group_by(Age, accuracy) %>% tally() %>% spread(accuracy
   mutate(PercentCorrect = Correct / (Correct + Incorrect)) 
 
 
+#############
+#predict using binomial
+# --------------------------------------------#
+### Binomial Regression ###
+
+
+library(mgcv)
+binomfit <- glm((Age-1)~Location+Q9abs+Q2plus, data=coho_scales_fulldata, family="binomial")
+summary(binomfit)
+
+testpred5 <- expand.grid(Q9abs=seq(min(coho_scales_fulldata$Q9abs), max(coho_scales_fulldata$Q9abs), length.out = 100), 
+                         Q2plus=seq(min(coho_scales_fulldata$Q2plus), max(coho_scales_fulldata$Q2plus, na.rm = TRUE), length.out = 100),
+                         Location=c("BR", "HS"))
+
+
+
+coho_scales_berners1 <- coho_scales_fulldata %>% filter(Location == "BR")
+coho_scales_berners1 <- coho_scales_berners1 %>% 
+  mutate(pred_binom = predict(binomfit, coho_scales_berners1, type = "response"),
+         pred_age5 = ifelse(pred_binom > 0.5, 2, 1),
+         accuracy = ifelse(pred_age5 == Age, "Correct", "Incorrect"))
+
+coho_scales_berners1 %>% group_by(Age, accuracy) %>% tally()
+
+
+coho_scales_hughsmith1 <- coho_scales_fulldata %>% filter(Location == "HS")
+coho_scales_hughsmith1 <- coho_scales_hughsmith1 %>% 
+  mutate(pred_binom = predict(binomfit, coho_scales_hughsmith1, type = "response"),
+         pred_age5 = ifelse(pred_binom > 0.5, 2, 1),
+         accuracy = ifelse(pred_age5 == Age, "Correct", "Incorrect"))
+
+coho_scales_hughsmith1 %>% group_by(Age, accuracy) %>% tally()
+
+
+plot(fitted(binomfit), residuals(binomfit), xlab = "Fitted Values", ylab = "Residuals")
+abline(h=0, lty=2)
+lines(smooth.spline(fitted(binomfit), residuals(binomfit)))
+
 
 
 

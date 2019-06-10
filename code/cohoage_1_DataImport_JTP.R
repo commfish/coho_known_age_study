@@ -7,16 +7,29 @@
 #' 
 # Script 1 - Data Import and Cleaup
 # Email addresses: Sara Miller (sara.miller@alaska.gov) and Justin Priest (justinpriest.ak@gmail.com)
-# JTP: Re-worked this code to be tidyverse compliant, portable ("here"), and remove plyr/reshape2, reshape
 
-# SEM: This is converted SAS code that I worked on awhile back (SEM-2-28-2019)
-# Converted SAS code to R code: Coho Smolt Scale Data-LDA
+# SCRIPT INFO
+# This script converted SAS code that SEM orginally worked on, and converted to R code (SEM-2-28-2019)
+# The SAS code was converted to R code. 
+# JTP re-worked this code to be tidyverse compliant, portable ("here"), and remove plyr/reshape2, reshape etc
+# Some of the nomenclature and coding is a little clunky.
+# However, code order and variable names were kept to ensure this script has the same output as previous scripts
 
-# Data info: These data come from Coho Salmon scales which were collected between 1994 and 2005 by ADF&G
-# at three locations: Auke Lake (AL), Berner's River (BR), and Hugh Smith Lake (HS)
-# Scale data were then read by the ADF&G Mark, Tag, and Age Lab
-# Define "Circuli"
-# Define "Zones"
+# DATA INFO
+# These data come from Coho Salmon scales which were collected between 1994 and 2005 by ADF&G
+#  at three locations: Auke Lake (AL), Berner's River (BR), and Hugh Smith Lake (HS)
+# The juvenile coho were tagged after hatching and recaptured as smolt during outmigration.
+# Thus, variable 'Age' is the known age of the fish (not the age given by a reader)
+# Scale data were then assessed by the ADF&G Mark, Tag, and Age (MTA) Lab (including age zones)
+# It is worth noting that it is unclear whether the Auke Lake coho data were indeed coded wire tagged 
+#  and thus whether those fish represented true known ages. 
+# For this reason, the analysis only focuses on Berner's River and Hugh Smith Lake
+# 'Circuli' are the dark growth rings laid down, many per season. 
+# The variables beginning with 'C' and a number correspond to circuli number (e.g., C4 is the 4th circulus)
+# 'Zones' are the annuli (corresponding to ages)
+# The variables beginning with 'Z' and a number correspond to the circulus
+# Thus, if 'Z5' = 1, then circuli 5 is still within the age zone of age-1 (these were determined by MTA Lab)
+
 
 #**************************************************************************************************
 #PART I:Import data and create dataset by one row/circuli and one row/zone instead of one row/fish
@@ -80,14 +93,9 @@ jj_JTP <- coho_scales_long %>%
   dplyr::select("Sample_ID", "IMAGENAME":"Comment", #Finally, reorder all the columns correctly
                 num_range("C", range = 3:41), num_range("Z", range = 3:41))
   
-  
 
-
-#rm(A1_JTP, A2_JTP, coho_scales_long)
 #new dataset jj_JTP is without plus groups or distance from focus to C2
 #write.csv(write.csv(jj_JTP, "data/check2.csv"))
-# NOTE: The JTP long dataframe is different slightly than the same long SEM dataframe. 
-# Runs on just three packages (tidyverse, lubridate, and here). Removed reshape functionality.
 
 
 #**************************************************************************************************
@@ -285,7 +293,7 @@ j_JTP <- j_JTP %>%
          Q68 = (C39 + C38 + C37) / Q2,
          Q69 = (C40 + C39 + C38) / Q2)
          #Q70 = (C41 + C40 + C39) / Q2)  # No C41 
-
+# These variables came from previous analysis and input from MTA lab members
 
 j_JTP <- j_JTP %>% 
   dplyr::select(Sample_ID:Q33_sum, Q1:Q69, Circuli_SFAZ_0.5:Check2) 
@@ -308,10 +316,10 @@ coho_scales_fulldata <- j_JTP %>%
             Q72 = sum(Count_Q3_1.25)) %>%
   left_join(j_JTP, by = c("Sample_ID" = "Sample_ID")) %>% 
   dplyr::select("Sample_ID", "Zone1":"Q69", "Q71":"Q72", "Circuli_SFAZ_0.5":"Check2", -"Sum_Zones")
-#rm()
+rm(j_JTP, jj_JTP)
 
-#subset datasets for different analyses
-#AL_BR_HS <- coho_scales_fulldata %>% dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44")
+
+# Lastly, subset datasets for different analyses
 coho_scales_aukelake <- coho_scales_fulldata %>% 
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
   filter(Location == "AL") #lake system (Auke Lake)

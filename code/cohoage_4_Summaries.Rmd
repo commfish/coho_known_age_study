@@ -1,0 +1,64 @@
+---
+title: "Results Summary"
+author: "Justin Priest"
+date: "6/4/2019"
+output: html_document
+---
+
+******
+
+```{r imports, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(here)
+library(extrafont)
+# font_import()  #this only needs to be run once
+loadfonts(device="win") #change for mac users
+
+
+# Import analysis script (which calls data import)
+source(here::here("code/cohoage_3_Analysis.R"))
+
+#formatting numbers function
+digform <- function(x, d = 2) sprintf(paste0("%1.", d, "f"), x) 
+
+```
+
+
+# Summary Stats:
+```{r summaries, echo=FALSE, include=FALSE}
+knitr::knit_hooks$set(inline = function(x) { if(!is.numeric(x)){ x }else{ prettyNum(round(x,2), big.mark=",") } })
+options(digits = 2)
+
+bernersnum <- nrow(coho_scales_berners)
+bernersages <- coho_scales_berners %>% group_by(Age) %>% tally()
+
+
+
+hughsmithnum <- nrow(coho_scales_hughsmith)
+hughsmithages <- coho_scales_hughsmith %>% group_by(Age) %>% tally()
+
+
+```
+In total there were `r bernersnum + hughsmithnum` coho salmon analyzed. 
+
+There were `r bernersnum` coho salmon from Berners River. 
+Of these, there were `r (bernersages %>% filter(Age==1))[,2]` Age 1 fish 
+(`r digform(100 * ((bernersages %>% filter(Age==1))[,2] / bernersnum), 1)`%), 
+and `r (bernersages %>% filter(Age==2))[,2]` Age 2 fish
+(`r digform(100 * ((bernersages %>% filter(Age==2))[,2] / bernersnum), 1)`%).
+
+From Hugh Smith Lake there were `r hughsmithnum` coho salmon. 
+Of these, there were `r (hughsmithages %>% filter(Age==1))[,2]` Age 1 fish
+(`r digform(100 * ((hughsmithages %>% filter(Age==1))[,2] / hughsmithnum), 1)`%), 
+and `r (hughsmithages %>% filter(Age==2))[,2]` Age 2 fish
+(`r digform(100 * ((hughsmithages %>% filter(Age==2))[,2] / hughsmithnum), 1)`%).
+
+
+
+```{r newsect, echo=FALSE}
+
+
+```
+
