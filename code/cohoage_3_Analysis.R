@@ -17,18 +17,21 @@
 
 #function betadisper in package vegan
 #MASS package LDA and QDA or cluster analysis?
-
-
-
-
 library(here)
 library(MASS)
 library(vegan)
 library(klaR)
+devtools::install_github("ben-williams/FNGr")
+library(FNGr)
+library(processx)
+library(fs)
+library(cowplot)
+library(extrafont)
+windowsFonts(Times=windowsFont("TT Times New Roman")) 
+theme_set(theme_sleek())
 
 # Run previous script to import data
 source(here::here("code/cohoage_1_DataImport_JTP.R"))
-
 
 # Transform Variables - Create New Datasets
 coho_scales_fulldata <- coho_scales_fulldata %>%
@@ -37,9 +40,6 @@ coho_scales_fulldata <- coho_scales_fulldata %>%
 
 coho_scales_berners <- coho_scales_fulldata %>% filter(Location == "BR")
 coho_scales_hughsmith <- coho_scales_fulldata %>% filter(Location == "HS")
-
-
-
 
 # Run QDA
 fit_qda_final <- qda(as.factor(Age) ~ Location + Q2plus_trans + Q9abs_trans, data=coho_scales_fulldata,
@@ -65,18 +65,30 @@ coho_scales_hughsmith <- coho_scales_hughsmith %>%
 ggplot() + 
   geom_tile(data = predictedvals %>% filter(Location == "BR"), aes(x=Q9abs_trans, y=Q2plus_trans, fill=predval)) +
   geom_text(data = coho_scales_berners, aes(x=Q9abs_trans, y=Q2plus_trans, label=Age, color=accuracy)) + 
-  scale_color_manual(values = c("black", "red"), guide=FALSE) +
-  scale_fill_manual(name="Predicted\nAge", values = c("#89b6ff", "#ff9260")) +
+  scale_color_manual(values = c("grey60", "black"), guide=FALSE) +
+  scale_fill_manual(name="Predicted\nAge", values = c("grey90", "grey95")) +
   scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
-  ggtitle("Berners River")
+  ggtitle("Berners River")+ xlab ("Q9abs (transformed)")+ylab("Q2plus (transformed)") +
+  annotate("text", x = 0.44, y=0.40, label="predicted age 1", family="Times New Roman", colour="black", size=3) +
+  annotate("text", x = 0.32, y=1.3, label="predicted age 2", family="Times New Roman", colour="black", size=3) +
+  annotate("text", x = 0.48, y=1.3, label="A)", family="Times New Roman", colour="black", size=3) +
+  theme(legend.position="none") -> plot1
 
 ggplot() + 
   geom_tile(data = predictedvals %>% filter(Location == "HS"), aes(x=Q9abs_trans, y=Q2plus_trans, fill=predval)) +
   geom_text(data = coho_scales_hughsmith, aes(x=Q9abs_trans, y=Q2plus_trans, label=Age, color=accuracy)) + 
-  scale_color_manual(values = c("black", "red"), guide=FALSE) +
-  scale_fill_manual(name="Predicted\nAge", values = c("#89b6ff", "#ff9260")) +
+  scale_color_manual(values = c("grey60", "black"), guide=FALSE) +
+  scale_fill_manual(name="Predicted\nAge", values = c("grey90", "grey95")) +
   scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
-  ggtitle("Hugh Smith")
+  ggtitle("Hugh Smith")+ xlab ("Q9abs (transformed)")+ylab("Q2plus (transformed)") +
+  annotate("text", x = 0.44, y=0.40, label="predicted age 1", family="Times New Roman", colour="black", size=3) +
+  annotate("text", x = 0.32, y=1.3, label="predicted age 2", family="Times New Roman", colour="black", size=3) +
+  annotate("text", x = 0.48, y=1.3, label="B)", family="Times New Roman", colour="black", size=3) +
+  theme(legend.position="none") -> plot2
+
+cowplot::plot_grid(plot1, plot2,  align = "h", nrow = 1, ncol=2) 
+ggsave("figures/model_pred.png", dpi = 500, height = 4 , width =6, units = "in")
+
 
 
 
