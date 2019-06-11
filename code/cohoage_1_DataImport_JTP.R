@@ -40,7 +40,7 @@ library(lubridate)
 source(here::here("code/functions.R"))
 
 
-# First, read in the data and make sure that the dates import correctly. 
+# Import Data 
 coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE) %>%
   mutate(Date = ymd(convyear(strptime(Date, format = "%d-%b-%Y", tz="US/Alaska"), 
                              year(strptime("10-Jun-05", format = "%d-%b-%Y")))),
@@ -89,8 +89,6 @@ jj_JTP <- coho_scales_long %>%
   
 
 #new dataset jj_JTP is without plus groups or distance from focus to C2
-#write.csv(write.csv(jj_JTP, "data/check2.csv"))
-
 
 
 #PART II: Summarize data by sample ID, zone, and circuli distance and count
@@ -123,12 +121,9 @@ j_JTP <- left_join(temp2 %>%
 
 
 
-
-
 # PART III: Calculate step#1 for variables Q32 and Q33
 # PART IV: Merge full dataset with summarized dataset by Sample_ID
 # PART V: Calculate step#1 for variables Q34 & Q35
-
 
 
 j_JTP <- j_JTP %>%
@@ -150,7 +145,7 @@ j_JTP <- j_JTP %>%
          SFAZ_0.75 = SFAZ * 0.75) %>% # Distance of 3/4 of SFAZ
   arrange(Sample_ID, Circulus) %>%
   group_by(Sample_ID) %>%
-  mutate(Cum.sum_0.5 = cumsum(Distance) ) %>% # Take cum distance by Sample_ID, inner to outer (used for SFAZ0.5)
+  mutate(Cum.sum_0.5 = cumsum(Distance) ) %>% # Take cumsum distance by Sample_ID, inner to outer (used for SFAZ0.5)
   arrange(Sample_ID, -Circulus) %>%
   group_by(Sample_ID) %>%
   mutate(Cum.sum_0.75 = cumsum(Distance)) %>% # Take cum distance by Sample_ID, outer to inner (used for SFAZ0.75)
@@ -189,8 +184,8 @@ j_JTP <- j_JTP %>%
 
 
 
-#PART VII: Calculate Variables (See Linear Discriminant Analysis-Project Overview document in 
-# S:\Region1Shared-DCF\Research\Salmon\Coho\Linear Discriminant Analysis.doc for list of variables)
+#PART VII: Calculate Variables (See Linear Discriminant Analysis-Project Overview document 
+# in S:\Region1Shared-DCF\Research\Salmon\Coho\Linear Discriminant Analysis.doc for list of variables)
 # Note C5 distance is distance from C4 to C5 circulus, therefore to start at C4 you need to start at C5
 options("na.actions"=na.omit)
 
@@ -271,7 +266,6 @@ j_JTP <- j_JTP %>%
          Q67 = (C38 + C37 + C36) / Q2,
          Q68 = (C39 + C38 + C37) / Q2,
          Q69 = (C40 + C39 + C38) / Q2)
-         #Q70 = (C41 + C40 + C39) / Q2)  # No C41 
 # These variables came from previous analysis and input from MTA lab members
 
 j_JTP <- j_JTP %>% 
@@ -310,9 +304,7 @@ coho_scales_hughsmith <- coho_scales_fulldata %>%
 
 coho_scales_bothriv <- coho_scales_fulldata %>% 
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
-  filter(Location == "BR" | Location == "HS") # both lake systems only
-
-
+  filter(Location == "BR" | Location == "HS") # both rivers for analysis 
 
 
 

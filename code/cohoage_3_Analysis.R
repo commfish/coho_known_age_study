@@ -96,6 +96,18 @@ cowplot::plot_grid(plot1, plot2,  align = "h", nrow = 1, ncol=2)
 ggsave("figures/model_pred1.png", dpi = 500, height = 4 , width = 6, units = "in")
 
 
+coho_scales_hughsmith %>% group_by(accuracy) %>% tally()
+coho_scales_berners %>% group_by(accuracy) %>% tally()
+paste0("BR SQRT ARCSINE: ", round((1-117/(1850 + 117))*100, 2), "%")
+paste0("HS SQRT ARCSINE: ", round((1-62/(790+62))*100, 2), "%")
+
+paste0("BR NO TRANS: ", round((1-118/(1849 + 118))*100, 2), "%")
+paste0("HS NO TRANS: ", round((1-60/(792+60))*100, 2), "%")
+
+paste0("BR SQRT: ", round((1-119/(1848 + 119))*100, 2), "%")
+paste0("HS SQRT: ", round((1-102/(750+102))*100, 2), "%")
+
+
 
 
 
