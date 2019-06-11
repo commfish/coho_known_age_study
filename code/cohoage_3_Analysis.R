@@ -9,20 +9,18 @@
 # Email addresses: Sara Miller (sara.miller@alaska.gov) and Justin Priest (justinpriest.ak@gmail.com)
 
 
-#Run LDA function  
-#To perform LDA, one must ensure that the within-group covariance matrices of
-#the explanatory variables are homogeneous, a condition that is frequently violated
-#with ecological data ;If one the groups defined by the dependent variable has greater 
-#dispersion than others, cases will tend to be overclassified in it.
+# Run QDA function  
+# To perform QDA, one must ensure that the within-group covariance matrices of
+# the explanatory variables are homogeneous, a condition that is frequently violated
+# with ecological data ;If one the groups defined by the dependent variable has greater 
+# dispersion than others, cases will tend to be overclassified in it.
 
-#function betadisper in package vegan
-#MASS package LDA and QDA or cluster analysis?
+
 library(here)
 library(MASS)
 library(vegan)
 library(klaR)
-#devtools::install_github("ben-williams/FNGr")
-library(FNGr)
+library(FNGr) #devtools::install_github("ben-williams/FNGr") 
 library(processx)
 library(fs)
 library(cowplot)
@@ -47,9 +45,9 @@ fit_qda_final <- qda(as.factor(Age) ~ Location + Q2plus_trans + Q9abs_trans, dat
 
 # Create blank predicted values (for plotting)
 predictedvals <- expand.grid(Q9abs_trans =seq(min(coho_scales_bothriv$Q9abs_trans), 
-                                          max(coho_scales_bothriv$Q9abs_trans), length.out = 100), 
+                                          max(coho_scales_bothriv$Q9abs_trans)+0.05, length.out = 100), #adding a little bit for plotting later
                          Q2plus_trans=seq(min(coho_scales_bothriv$Q2plus_trans), 
-                                          max(coho_scales_bothriv$Q2plus_trans), length.out = 100),
+                                          max(coho_scales_bothriv$Q2plus_trans)+0.1, length.out = 100), #adding a little bit for plotting later
                          Location = c("HS", "BR"))
 
 predictedvals$predval <- predict(fit_qda_final, predictedvals)$class
@@ -65,36 +63,42 @@ coho_scales_hughsmith <- coho_scales_hughsmith %>%
 
 ggplot() + 
   geom_tile(data = predictedvals %>% filter(Location == "BR"), aes(x=Q9abs_trans, y=Q2plus_trans, fill=predval)) +
-  geom_text(data = coho_scales_berners, aes(x=Q9abs_trans, y=Q2plus_trans, label=Age, color=accuracy)) + 
-  scale_color_manual(values = c("grey60", "black"), guide=FALSE) +
+  #geom_text(data = coho_scales_berners, aes(x=Q9abs_trans, y=Q2plus_trans, label=Age, color=accuracy)) + 
+  geom_text(data = coho_scales_berners %>% filter(accuracy == "Correct"), aes(x=Q9abs_trans, y=Q2plus_trans, label=Age), color="grey60") + 
+  geom_text(data = coho_scales_berners %>% filter(accuracy == "Incorrect"), aes(x=Q9abs_trans, y=Q2plus_trans, label=Age), color="black") +
+  #scale_color_manual(values = c("grey60", "black"), guide=FALSE) +
   scale_fill_manual(name="Predicted\nAge", values = c("grey90", "grey95")) +
-  scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
-  ggtitle("Berners River")+ xlab ("Q9abs (transformed)")+ylab("Q2plus (transformed)") +
-  annotate("text", x = 0.44, y=0.40, label="predicted age 1", family="Times New Roman", colour="black", size=3) +
-  annotate("text", x = 0.32, y=1.3, label="predicted age 2", family="Times New Roman", colour="black", size=3) +
-  annotate("text", x = 0.48, y=1.3, label="A)", family="Times New Roman", colour="black", size=3) +
-  theme(legend.position="none") -> plot1
+  scale_y_continuous(expand = c(0,0), limits = c(0.09, 0.72), breaks = c(seq(0.1, 0.7, by = 0.1))) + 
+  scale_x_continuous(expand = c(0,0), limits = c(0.07, 0.23), breaks = c(seq(0.08, 0.2, by = 0.04))) +
+  ggtitle("A) Berners River")+ xlab ("Q9abs (transformed)")+ylab("Q2plus (transformed)") +
+  annotate("text", x = 0.19, y=0.13, label="predicted age 1", family="Times New Roman", colour="black", size=3) +
+  annotate("text", x = 0.1, y=0.68, label="predicted age 2", family="Times New Roman", colour="black", size=3) +
+  # annotate("text", x = 0.08, y=0.7, label="B)", family="Times New Roman", colour="black", size=5) +
+  theme(legend.position="none", text=element_text(family="Times New Roman", size=12)) -> plot1
 
 ggplot() + 
   geom_tile(data = predictedvals %>% filter(Location == "HS"), aes(x=Q9abs_trans, y=Q2plus_trans, fill=predval)) +
-  geom_text(data = coho_scales_hughsmith, aes(x=Q9abs_trans, y=Q2plus_trans, label=Age, color=accuracy)) + 
-  scale_color_manual(values = c("grey60", "black"), guide=FALSE) +
+  geom_text(data = coho_scales_hughsmith %>% filter(accuracy == "Correct"), aes(x=Q9abs_trans, y=Q2plus_trans, label=Age), color="grey60") + 
+  geom_text(data = coho_scales_hughsmith %>% filter(accuracy == "Incorrect"), aes(x=Q9abs_trans, y=Q2plus_trans, label=Age), color="black") +
+  # I did it this way so that the black text would be on top and not buried
+  #geom_text(data = coho_scales_hughsmith, aes(x=Q9abs_trans, y=Q2plus_trans, label=Age, color=accuracy)) + 
+  #scale_color_manual(values = c("grey60", "black"), guide=FALSE) +
   scale_fill_manual(name="Predicted\nAge", values = c("grey90", "grey95")) +
-  scale_y_continuous(expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
-  ggtitle("Hugh Smith")+ xlab ("Q9abs (transformed)")+ylab("Q2plus (transformed)") +
-  annotate("text", x = 0.44, y=0.40, label="predicted age 1", family="Times New Roman", colour="black", size=3) +
-  annotate("text", x = 0.32, y=1.3, label="predicted age 2", family="Times New Roman", colour="black", size=3) +
-  annotate("text", x = 0.48, y=1.3, label="B)", family="Times New Roman", colour="black", size=3) +
-  theme(legend.position="none") -> plot2
+  scale_y_continuous(expand = c(0,0), limits = c(0.09, 0.72), breaks = c(seq(0.1, 0.7, by = 0.1))) + 
+  scale_x_continuous(expand = c(0,0), limits = c(0.07, 0.23), breaks = c(seq(0.08, 0.2, by = 0.04))) +
+  ggtitle("B) Hugh Smith")+ xlab ("Q9abs (transformed)") + ylab("Q2plus (transformed)") +
+  annotate("text", x = 0.19, y=0.13, label="predicted age 1", family="Times New Roman", colour="black", size=3) +
+  annotate("text", x = 0.1, y=0.68, label="predicted age 2", family="Times New Roman", colour="black", size=3) +
+  # annotate("text", x = 0.08, y=0.7, label="B)", family="Times New Roman", colour="black", size=5) +
+  theme(legend.position="none", text=element_text(family="Times New Roman", size=12)) -> plot2
 
 cowplot::plot_grid(plot1, plot2,  align = "h", nrow = 1, ncol=2) 
-ggsave("figures/model_pred.png", dpi = 500, height = 4 , width =6, units = "in")
+ggsave("figures/model_pred1.png", dpi = 500, height = 4 , width = 6, units = "in")
 
 
-coho_scales_hughsmith %>% group_by(accuracy) %>% tally()
-coho_scales_berners %>% group_by(accuracy) %>% tally()
-1-117/(1850 + 117)
-1-62/(790+62)
+
+
+
 
 
 

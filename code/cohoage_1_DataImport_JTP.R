@@ -64,49 +64,18 @@ A2_JTP <- coho_scales %>%
   gather(key = "Circulus", value = "Distance2", "C1":"C41") # turn from wide to long, each row is a zone
 
 
-# coho_scales_long <- A2_JTP %>% 
-#   bind_cols(A1_JTP %>% 
-#   dplyr::select("Zone", "Variable")) %>%
-#   filter(Circulus != "C1", Circulus != "C2", Age != 3) %>% # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
-#   mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
-#                           ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
-#   arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus 
-#   mutate(PlusGrowth = ifelse(Distance2 > 0,
-#                              ifelse(is.na(Zone) | Zone=="", "plusgrowth", paste0("Zone", Zone)), Distance2)) %>%
-#   #JTP added this section, 5/5 to account for plus growth
-#   dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
-#   drop_na("Distance") # remove rows with NAs for Distance
-#   # drop_na("Distance2") %>%
-#   # mutate(Distance = Distance2) %>%# remove rows with NAs for Distance
-#   # dplyr::select(-"Distance2") %>%
-#   # dplyr::select("IMAGENAME", "Sample_ID",	"Location",	"Year",	"Date",	"dayofyear"	,"Floy_No",	"Tag_Code",	"Age", "Length",
-#   #               "Sublocation", "Comment", "Circulus", "Zone", "Variable", "Distance", "PlusGrowth")
-# 
-
-
-#SEM VERSION
-coho_scales_long <- A2_JTP %>% 
-  bind_cols(A1_JTP %>% 
-              dplyr::select("Zone", "Variable")) %>%
+coho_scales_long <- A2_JTP %>%
+  bind_cols(A1_JTP %>%
+  dplyr::select("Zone", "Variable")) %>%
   filter(Circulus != "C1", Circulus != "C2", Age != 3) %>% # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
-  # mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
-  #                         ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
-  arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus 
-  mutate(PlusGrowth = ifelse(Distance2 > 0,
-                             ifelse(is.na(Zone) | Zone=="", "plusgrowth", paste0("Zone", Zone)), Distance2)) %>%
-  #JTP added this section, 5/5 to account for plus growth
-  # dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
-  # drop_na("Distance") # remove rows with NAs for Distance
-  drop_na("Distance2") %>%
-  mutate(Distance = Distance2) %>%# remove rows with NAs for Distance
-  dplyr::select(-"Distance2") %>%
-  dplyr::select("IMAGENAME", "Sample_ID",	"Location",	"Year",	"Date",	"dayofyear"	,"Floy_No",	"Tag_Code",	"Age", "Length",
-                "Sublocation", "Comment", "Circulus", "Zone", "Variable", "Distance", "PlusGrowth")
+  arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus
+  mutate(PlusGrowth = ifelse(Zone == 1 | Zone == 2, paste0("Zone", Zone), "plusgrowth")) %>%
+  rename("Distance" = "Distance2") %>%
+  drop_na("Distance") # remove rows with NAs for Distance
 
 
 rm(A1_JTP, A2_JTP)
 
-#write.csv(write.csv(x, "data/check.csv") )
 
 jj_JTP <- coho_scales_long %>% 
   dplyr::select(-Variable, -Zone, -PlusGrowth) %>% # Drop these two cols so that spread works correctly
@@ -128,9 +97,9 @@ jj_JTP <- coho_scales_long %>%
 
 temp2 <- coho_scales_long %>% dplyr::select(-Zone) %>%
   rename(Zone = PlusGrowth) %>%
-  filter(Zone == "Zone1" | Zone == "Zone2" | Zone == "plusgrowth" ) %>% 
+  filter(Zone == "Zone1" | Zone == "Zone2" | Zone == "plusgrowth") %>% 
   group_by(Sample_ID, Zone) %>% 
-  summarise(freq = length(Distance), Distance = sum (Distance)) %>% #does not include distance from focus to C2
+  summarise(freq = length(Distance), Distance = sum(Distance)) %>% #does not include distance from focus to C2
   rename(value = Distance) 
 
 
@@ -241,7 +210,7 @@ j_JTP <- j_JTP %>%
          Q7 = f_sum(., C3, C6, Q2), # etc.
          Q8 = f_sum(., C3, C7, Q2), # The end result is that Q8 is Distance to Circuli 7 (excluding Circ1&2) / tot dist (exc Circ1&2)
          Q9 = f_sum(., C3, C8, Q2),
-         Q9abs = Q9 * Q2,
+         Q9abs = Q9 * Q2, # This is the absolute distance from C3 thru C8
          Q10 = f_sum(., C3, C9, Q2),
          Q11 = f_sum(., C3, C10, Q2),
          Q12 = f_sum(., C3, C11, Q2),
@@ -330,10 +299,7 @@ rm(j_JTP, jj_JTP)
 
 
 # Lastly, subset datasets for different analyses
-coho_scales_aukelake <- coho_scales_fulldata %>% 
-  dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
-  filter(Location == "AL") #lake system (Auke Lake)
-  
+
 coho_scales_berners <- coho_scales_fulldata %>% 
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
   filter(Location == "BR") #river system (Berner's River)
@@ -342,9 +308,9 @@ coho_scales_hughsmith <- coho_scales_fulldata %>%
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
   filter(Location == "HS") #Lake system (Hugh Smith Lake)
 
-coho_scales_lakes <- coho_scales_fulldata %>% 
+coho_scales_bothriv <- coho_scales_fulldata %>% 
   dplyr::select("Sample_ID":"Length", "Q32_sum":"Q44") %>%
-  filter(Location == "HS" | Location == "AL") # both lake systems only
+  filter(Location == "BR" | Location == "HS") # both lake systems only
 
 
 
