@@ -1,65 +1,25 @@
+# load libraries
 library(corrplot)
 library(GGally)
 library(here)
 library(mgcv)
 library(mvnormtest)
 library(HH)
+library(klaR)
+library(MASS)
 
 # Run previous script to import data
+source(here::here("code/functions.R"))
 source(here::here("code/cohoage_1_DataImport_JTP.R"))
 
 
-# --------------------------------------------#
-#### FUNCTIONS #### 
-#load some functions for usage
-
-hist.normal <- function(data, histcolumn, agefilter=0){ 
-  # This function creates a histogram of data, overlaid with a normal curve (to show departures from normal)
-  # Note that histcolumn needs to be in quotes when run. Leave agefilter blank to show both ages
-  if (agefilter != 1 & agefilter != 2){
-    .cleandata <- data %>% filter(!is.na(Length))
-    .agenum <- "Both ages"
-  }
-  else{
-    .cleandata <- data %>% filter(Age == agefilter, !is.na(Length))
-    .agenum <- paste0("Age ", agefilter)
-  }
-  .cleandata <- .cleandata %>% mutate(newcol=(!!as.name(histcolumn))) %>% 
-    dplyr::select(newcol)
-  h <- hist(.cleandata$newcol, breaks=20, 
-            main = paste0(deparse(substitute(data)), "\n", histcolumn, " hist - ", .agenum))
-  
-  xfit <- seq(min(.cleandata$newcol), max(.cleandata$newcol), length = 40)
-  yfit <- dnorm(xfit, mean = mean(.cleandata$newcol), sd = sd(.cleandata$newcol)) 
-  yfit <- yfit * diff(h$mids[1:2]) * length(.cleandata$newcol) 
-  lines(xfit, yfit, col = "red", lwd = 2)
-}
-
-
-eda.norm <- function(x, ...){ #Function from Franz Mueter
-  par(mfrow=c(2,2))
-  if(sum(is.na(x)) > 0)
-    warning("NA's were removed before plotting")
-  x <- x[!is.na(x)]
-  hist(x, main = "Histogram and non-\nparametric density estimate", prob = T)
-  iqd <- summary(x)[5] - summary(x)[2]
-  lines(density(x, width = 2 * iqd))
-  boxplot(x, main = "Boxplot", ...)
-  qqnorm(x)
-  qqline(x)
-  plot.ecdf(x, main="Empirical and normal cdf")
-  LIM <- par("usr")
-  y <- seq(LIM[1],LIM[2],length=100)
-  lines(y, pnorm(y, mean(x), sqrt(var(x))))
-  shapiro.test(x)
-}
 
 
 #----------------------------# 
 #### BEGIN EDA ####
 
 
-## Correlation between variables
+# Correlation between variables
 for(q in c("HS", "BR", "AL")) { # Print a few correlation plots between variables
   print(corrplot.mixed(cor(coho_scales_fulldata %>%
                      filter(Location == q) %>%
@@ -74,9 +34,9 @@ for(q in c("HS", "BR", "AL")) { # Print a few correlation plots between variable
   shift <- function(x, n){c(x[-(seq(n))], rep(NA, n))}
   
   .temp4 <- as.data.frame(.temp4)
-  for(i in 2:28){.temp4[,i] <- shift(.temp4[,i], i-1)}
+  for(i in 2:29){.temp4[,i] <- shift(.temp4[,i], i-1)}
   
-  .temp4["rownum"] <- seq(1:28)
+  .temp4["rownum"] <- seq(1:29)
   .temp4 <- .temp4 %>% gather("Qnum", "corr", Q4:Q31)
   
   print(ggplot(.temp4, aes(x=rownum, y = corr, color=Qnum)) +
@@ -197,7 +157,7 @@ shapiro.test(asin(sqrt(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 
 #recommend transforming with arcsine square root. But first explore everything without transformations, save for last.
 
 
-# Visualize what we're testing
+# Homogeneity of variances Tests
 hist((coho_scales_berners$Length[coho_scales_berners$Age == 1]), breaks = 25)
 
 bartlett.test(log(Q5)~Age, data=coho_scales_aukelake) 
@@ -214,6 +174,23 @@ hov(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
 
 hovPlot(Q5~as.factor(Age), data=coho_scales_aukelake)
 hovPlot(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
+HH::hov(Q9abs~as.factor(Age), data=coho_scales_aukelake) #p >0.05 homogeneity of variances (Brown Forsyth test)
+HH::hov(Q9abs~as.factor(Age), data=coho_scales_berners)
+HH::hov(Q9abs~as.factor(Age), data=coho_scales_hughsmith)
+
+HH::hov(Q2plus~as.factor(Age), data=coho_scales_aukelake)
+HH::hov(Q2plus~as.factor(Age), data=coho_scales_berners)
+HH::hov(Q2plus~as.factor(Age), data=coho_scales_hughsmith)
+
+HH::hov(Length~as.factor(Age), data=coho_scales_aukelake %>% filter(!is.na(Length)))
+
+hovPlot(Q2plus~as.factor(Age), data=coho_scales_aukelake)
+hovPlot(Q2plus~as.factor(Age), data=coho_scales_berners)
+hovPlot(Q2plus~as.factor(Age), data=coho_scales_hughsmith)
+
+hovPlot(Q9abs~as.factor(Age), data=coho_scales_aukelake)
+hovPlot(Q9abs~as.factor(Age), data=coho_scales_berners)
+hovPlot(Q9abs~as.factor(Age), data=coho_scales_hughsmith)
 
 
 # --------------------------------------------#
@@ -517,7 +494,18 @@ summary(lm(acc1 ~ Year, data = coho_scales_hughsmith1)) # insig
 
 
 
+boxcox(coho_scales_hughsmith$Age~coho_scales_hughsmith$Q2plus)
+boxcox(lm(Age~Q2plus, data=coho_scales_berners),lambda=seq(-10,1,by=.1))
 
+
+x <- runif(100, 1, 5)
+y <- x^3 + rnorm(100)
+plot(x,y)
+# run a linear model
+m <- lm(y ~ x)
+
+# run the box-cox transformation
+bc <- boxcox(y ~ x)
 
 #### FINAL SUMMARY #### 
 # Recommend using variables Q2plus and Q9abs to predict age

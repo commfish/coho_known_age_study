@@ -21,7 +21,7 @@ library(here)
 library(MASS)
 library(vegan)
 library(klaR)
-devtools::install_github("ben-williams/FNGr")
+#devtools::install_github("ben-williams/FNGr")
 library(FNGr)
 library(processx)
 library(fs)
@@ -34,23 +34,23 @@ theme_set(theme_sleek())
 source(here::here("code/cohoage_1_DataImport_JTP.R"))
 
 # Transform Variables - Create New Datasets
-coho_scales_fulldata <- coho_scales_fulldata %>%
-  mutate(Q2plus_trans = asin(sqrt(Q2plus)),
-         Q9abs_trans = asin(sqrt(Q9abs)))
+coho_scales_bothriv <- coho_scales_bothriv %>%
+  mutate(Q2plus_trans = (Q2plus), # Leaving this untransformed for now
+         Q9abs_trans = (Q9abs)) # Not transformed
 
-coho_scales_berners <- coho_scales_fulldata %>% filter(Location == "BR")
-coho_scales_hughsmith <- coho_scales_fulldata %>% filter(Location == "HS")
+coho_scales_berners <- coho_scales_bothriv %>% filter(Location == "BR")
+coho_scales_hughsmith <- coho_scales_bothriv %>% filter(Location == "HS")
 
 # Run QDA
-fit_qda_final <- qda(as.factor(Age) ~ Location + Q2plus_trans + Q9abs_trans, data=coho_scales_fulldata,
+fit_qda_final <- qda(as.factor(Age) ~ Location + Q2plus_trans + Q9abs_trans, data=coho_scales_bothriv,
                 prior=c(0.66,0.34)) #prior prob 66% fish are Age1 (leave blank for uninformed)
 
 # Create blank predicted values (for plotting)
-predictedvals <- expand.grid(Q9abs_trans =seq(min(coho_scales_fulldata$Q9abs_trans), 
-                                          max(coho_scales_fulldata$Q9abs_trans), length.out = 100), 
-                         Q2plus_trans=seq(min(coho_scales_fulldata$Q2plus_trans), 
-                                          max(coho_scales_fulldata$Q2plus_trans), length.out = 100),
-                         Location = c("AL", "HS", "BR"))
+predictedvals <- expand.grid(Q9abs_trans =seq(min(coho_scales_bothriv$Q9abs_trans), 
+                                          max(coho_scales_bothriv$Q9abs_trans), length.out = 100), 
+                         Q2plus_trans=seq(min(coho_scales_bothriv$Q2plus_trans), 
+                                          max(coho_scales_bothriv$Q2plus_trans), length.out = 100),
+                         Location = c("HS", "BR"))
 
 predictedvals$predval <- predict(fit_qda_final, predictedvals)$class
 
@@ -61,6 +61,7 @@ coho_scales_berners <- coho_scales_berners %>%
 coho_scales_hughsmith <- coho_scales_hughsmith %>% 
   mutate(pred_age = predict(fit_qda_final, coho_scales_hughsmith)$class,
          accuracy = ifelse(pred_age == Age, "Correct", "Incorrect"))
+
 
 ggplot() + 
   geom_tile(data = predictedvals %>% filter(Location == "BR"), aes(x=Q9abs_trans, y=Q2plus_trans, fill=predval)) +
@@ -89,6 +90,11 @@ ggplot() +
 cowplot::plot_grid(plot1, plot2,  align = "h", nrow = 1, ncol=2) 
 ggsave("figures/model_pred.png", dpi = 500, height = 4 , width =6, units = "in")
 
+
+coho_scales_hughsmith %>% group_by(accuracy) %>% tally()
+coho_scales_berners %>% group_by(accuracy) %>% tally()
+1-117/(1850 + 117)
+1-62/(790+62)
 
 
 

@@ -31,18 +31,14 @@
 # Thus, if 'Z5' = 1, then circuli 5 is still within the age zone of age-1 (these were determined by MTA Lab)
 
 
-#**************************************************************************************************
+
 #PART I:Import data and create dataset by one row/circuli and one row/zone instead of one row/fish
 library(here)
 library(tidyverse)
 library(lubridate)
 
+source(here::here("code/functions.R"))
 
-convyear <- function(x, year=2000){ # This function converts year correctly
-  m <- year(x) %% 100
-  year(x) <- ifelse(m > year %% 100, 1900+m, 2000+m)
-  x
-}
 
 # First, read in the data and make sure that the dates import correctly. 
 coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALSE) %>%
@@ -50,6 +46,7 @@ coho_scales <- read.csv(here::here("data/AL_BR_HS.csv"), stringsAsFactors = FALS
                              year(strptime("10-Jun-05", format = "%d-%b-%Y")))),
          dayofyear = yday(Date)) %>%
   dplyr::select(IMAGENAME:Date, dayofyear, everything()) %>%
+  filter(Sample_ID != 'BR04-0453') %>% # Delete this sample as per SEM
   drop_na(Data_Pairs) # Exclude rows with no distances measured
 
 
@@ -67,18 +64,46 @@ A2_JTP <- coho_scales %>%
   gather(key = "Circulus", value = "Distance2", "C1":"C41") # turn from wide to long, each row is a zone
 
 
+# coho_scales_long <- A2_JTP %>% 
+#   bind_cols(A1_JTP %>% 
+#   dplyr::select("Zone", "Variable")) %>%
+#   filter(Circulus != "C1", Circulus != "C2", Age != 3) %>% # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
+#   mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
+#                           ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
+#   arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus 
+#   mutate(PlusGrowth = ifelse(Distance2 > 0,
+#                              ifelse(is.na(Zone) | Zone=="", "plusgrowth", paste0("Zone", Zone)), Distance2)) %>%
+#   #JTP added this section, 5/5 to account for plus growth
+#   dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
+#   drop_na("Distance") # remove rows with NAs for Distance
+#   # drop_na("Distance2") %>%
+#   # mutate(Distance = Distance2) %>%# remove rows with NAs for Distance
+#   # dplyr::select(-"Distance2") %>%
+#   # dplyr::select("IMAGENAME", "Sample_ID",	"Location",	"Year",	"Date",	"dayofyear"	,"Floy_No",	"Tag_Code",	"Age", "Length",
+#   #               "Sublocation", "Comment", "Circulus", "Zone", "Variable", "Distance", "PlusGrowth")
+# 
+
+
+#SEM VERSION
 coho_scales_long <- A2_JTP %>% 
   bind_cols(A1_JTP %>% 
-  dplyr::select("Zone", "Variable")) %>%
+              dplyr::select("Zone", "Variable")) %>%
   filter(Circulus != "C1", Circulus != "C2", Age != 3) %>% # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
-  mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
-                           ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
+  # mutate(Distance = ifelse(Age == 1 & Zone == 1, Distance2, # Add a new column "Distance" that excludes some distance/age combos
+  #                         ifelse(Age == 2 & Zone <= 2, Distance2, NA)))%>% #JTP NOTE 4/9: This drops fish with blank zones but that DO have distances. It excludes Z41/C41
   arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus 
   mutate(PlusGrowth = ifelse(Distance2 > 0,
                              ifelse(is.na(Zone) | Zone=="", "plusgrowth", paste0("Zone", Zone)), Distance2)) %>%
   #JTP added this section, 5/5 to account for plus growth
-  dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
-  drop_na("Distance") # remove rows with NAs for Distance
+  # dplyr::select(-"Distance2") %>% # Distance2 is just the plus growth now, drop it
+  # drop_na("Distance") # remove rows with NAs for Distance
+  drop_na("Distance2") %>%
+  mutate(Distance = Distance2) %>%# remove rows with NAs for Distance
+  dplyr::select(-"Distance2") %>%
+  dplyr::select("IMAGENAME", "Sample_ID",	"Location",	"Year",	"Date",	"dayofyear"	,"Floy_No",	"Tag_Code",	"Age", "Length",
+                "Sublocation", "Comment", "Circulus", "Zone", "Variable", "Distance", "PlusGrowth")
+
+
 rm(A1_JTP, A2_JTP)
 
 #write.csv(write.csv(x, "data/check.csv") )
@@ -98,7 +123,7 @@ jj_JTP <- coho_scales_long %>%
 #write.csv(write.csv(jj_JTP, "data/check2.csv"))
 
 
-#**************************************************************************************************
+
 #PART II: Summarize data by sample ID, zone, and circuli distance and count
 
 temp2 <- coho_scales_long %>% dplyr::select(-Zone) %>%
@@ -131,7 +156,6 @@ j_JTP <- left_join(temp2 %>%
 
 
 
-#**************************************************************************************************
 # PART III: Calculate step#1 for variables Q32 and Q33
 # PART IV: Merge full dataset with summarized dataset by Sample_ID
 # PART V: Calculate step#1 for variables Q34 & Q35
@@ -173,7 +197,6 @@ j_JTP <- j_JTP %>%
   dplyr::select(Sample_ID, Zone1:Z40, Q32_sum, Q33_sum, Circuli_SFAZ_0.5, Circuli_SFAZ_0.75) # reorganize order
 
 
-#**************************************************************************************************
 
 #PART VI: Data check 
 # If age 1 there must be zone 1 measurements also zone 2 is optional if plus is present. 
@@ -195,25 +218,12 @@ j_JTP %>% filter(Check == "Need to Check" | Check1 == "Need to Check" | Check2 =
 j_JTP <- j_JTP %>% 
   dplyr::select(-Check)
 
-#**************************************************************************************************
 
-#PART VII: Calculate Variables (See Linear Discriminant Analysis-Project Overview document in S:\Region1Shared-DCF\Research\Salmon\Coho\Linear Discriminant Analysis.doc for list of variables)
-#Note C5 distance is distance from C4 to C5 circulus, therefore to start at C4 you need to start at C5
+
+#PART VII: Calculate Variables (See Linear Discriminant Analysis-Project Overview document in 
+# S:\Region1Shared-DCF\Research\Salmon\Coho\Linear Discriminant Analysis.doc for list of variables)
+# Note C5 distance is distance from C4 to C5 circulus, therefore to start at C4 you need to start at C5
 options("na.actions"=na.omit)
-
-f_sum <- function(data, col1, col2, div){
-  col1 = enquo(col1)
-  col2 = enquo(col2)
-  div = enquo(div)
-  
-  data %>% 
-    dplyr::select(!!col1:!!col2) %>% 
-    apply(1, sum, na.rm=T) %>% 
-    as.data.frame %>% 
-    bind_cols(data) %>% 
-    transmute(temp = . / !!div) %>% 
-    .$temp
-} # Sum function from Ben Williams
 
 
 
