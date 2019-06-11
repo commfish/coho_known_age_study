@@ -7,6 +7,8 @@ library(mvnormtest)
 library(HH)
 library(klaR)
 library(MASS)
+library(mvoutlier)
+library(prabclus)
 
 # Run previous script to import data
 source(here::here("code/functions.R"))
@@ -104,7 +106,7 @@ hist(log(coho_scales_aukelake$Q9), breaks=15)
 
 
 # --------------------------------------------#
-#### NORMALITY ASSESSMENTS ####
+#### UNIVARIATE NORMALITY ASSESSMENTS ####
 coho_scales_berners2 <- coho_scales_fulldata %>% filter(Location == "BR")
 coho_scales_hughsmith2 <- coho_scales_fulldata %>% filter(Location == "HS")
 qqnorm((coho_scales_berners2 %>% filter(Age==1))$Q9abs); qqline((coho_scales_berners2 %>% filter(Age==1))$Q9abs)
@@ -120,39 +122,49 @@ qqnorm((coho_scales_hughsmith2 %>% filter(Age==2))$Q2plus); qqline((coho_scales_
 
 # --------------------------------------------#
 #### NORMALITY TESTING ####
-mvnormtest::mshapiro.test(t(coho_scales_aukelake %>% dplyr::select(Age, Length, Q2, Q5, Q9) %>% na.omit %>% as.matrix()))
+mvnormtest::mshapiro.test(t(coho_scales_hughsmith %>% dplyr::select(Age, Length, Q2, Q5, Q9) %>% na.omit %>% as.matrix()))
 
-shapiro.test(coho_scales_aukelake$Q9) # Not normal
-shapiro.test(log(coho_scales_aukelake$Q9)) # Normal
-shapiro.test(log(coho_scales_aukelake$Length))
-shapiro.test((coho_scales_aukelake$Length)^0.25)
+#try centering data
+#coho_scales_berners_sub <-coho_scales_berners %>%
+#  dplyr::select(Q2plus, Q9abs)
+#preproc.param <- coho_scales_berners_sub %>%
+#  preProcess(method = c("center", "scale"))
+#coho_scales_berners_trans <- preproc.param %>% predict(coho_scales_berners_sub)
+#coho_scales_berners2<-coho_scales_berners %>%
+#  dplyr::select(Location,Age, Length)
+#coho_scales_berners <-cbind(coho_scales_berners2, coho_scales_berners_trans)
 
-shapiro.test((coho_scales_aukelake$Length[coho_scales_aukelake$Age == 1])) #Not normal, but slightly better log trans
-shapiro.test((coho_scales_aukelake$Length[coho_scales_aukelake$Age == 2])) #Not normal, but slightly better log trans
-shapiro.test((coho_scales_berners$Length[coho_scales_berners$Age == 1])) # VERY Not normal, but slightly better log trans
-shapiro.test((coho_scales_berners$Length[coho_scales_berners$Age == 2])) #Not normal, but worse with log trans
-shapiro.test((coho_scales_hughsmith$Length[coho_scales_hughsmith$Age == 1])) # Normal!
-shapiro.test((coho_scales_hughsmith$Length[coho_scales_hughsmith$Age == 2])) # Normal
+eda.norm(coho_scales_aukelake$Q9) # Not normal
+eda.norm(log(coho_scales_aukelake$Q9)) # Normal
+eda.norm(log(coho_scales_aukelake$Length))
+eda.norm((coho_scales_aukelake$Length)^0.25)
 
-shapiro.test(coho_scales_berners$Q2plus[coho_scales_berners$Age == 1]) #very not normal
-shapiro.test(coho_scales_berners$Q2plus[coho_scales_berners$Age == 2]) # not normal
-shapiro.test(coho_scales_hughsmith$Q2plus[coho_scales_hughsmith$Age == 1]) #normal
-shapiro.test(coho_scales_hughsmith$Q2plus[coho_scales_hughsmith$Age == 2]) #almost normal
+eda.norm((coho_scales_aukelake$Length[coho_scales_aukelake$Age == 1])) #Not normal, but slightly better log trans
+eda.norm((coho_scales_aukelake$Length[coho_scales_aukelake$Age == 2])) #Not normal, but slightly better log trans
+eda.norm((coho_scales_berners$Length[coho_scales_berners$Age == 1])) # VERY Not normal, but slightly better log trans
+eda.norm((coho_scales_berners$Length[coho_scales_berners$Age == 2])) #Not normal, but worse with log trans
+eda.norm((coho_scales_hughsmith$Length[coho_scales_hughsmith$Age == 1])) # Normal!
+eda.norm((coho_scales_hughsmith$Length[coho_scales_hughsmith$Age == 2])) # Normal
 
-shapiro.test(coho_scales_berners$Q9abs[coho_scales_berners$Age == 1]) # normal
-shapiro.test(coho_scales_berners$Q9abs[coho_scales_berners$Age == 2]) # normal
-shapiro.test(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 1]) # not normal
-shapiro.test(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 2]) # normal
+eda.norm(coho_scales_berners$Q2plus[coho_scales_berners$Age == 1]) #very not normal
+eda.norm(coho_scales_berners$Q2plus[coho_scales_berners$Age == 2]) # not normal
+eda.norm(coho_scales_hughsmith$Q2plus[coho_scales_hughsmith$Age == 1]) #normal
+eda.norm(coho_scales_hughsmith$Q2plus[coho_scales_hughsmith$Age == 2]) #almost normal
 
-shapiro.test(asin(sqrt(coho_scales_berners$Q2plus[coho_scales_berners$Age == 1]))) #not normal but improvement
-shapiro.test(asin(sqrt(coho_scales_berners$Q2plus[coho_scales_berners$Age == 2]))) # not normal, about same
-shapiro.test(asin(sqrt(coho_scales_hughsmith$Q2plus[coho_scales_hughsmith$Age == 1]))) #normal
-shapiro.test(asin(sqrt(coho_scales_hughsmith$Q2plus[coho_scales_hughsmith$Age == 2]))) #almost normal, same
+eda.norm(coho_scales_berners$Q9abs[coho_scales_berners$Age == 1]) # normal
+eda.norm(coho_scales_berners$Q9abs[coho_scales_berners$Age == 2]) # normal
+eda.norm(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 1]) # not normal
+eda.norm(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 2]) # normal
 
-shapiro.test(asin(sqrt(coho_scales_berners$Q9abs[coho_scales_berners$Age == 1]))) # almost normal, worse
-shapiro.test(asin(sqrt(coho_scales_berners$Q9abs[coho_scales_berners$Age == 2]))) # normal, worse
-shapiro.test(asin(sqrt(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 1]))) # not normal, great improvement tho
-shapiro.test(asin(sqrt(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 2]))) # normal
+eda.norm(asin(sqrt(coho_scales_berners$Q2plus[coho_scales_berners$Age == 1]))) #not normal but improvement
+eda.norm(asin(sqrt(coho_scales_berners$Q2plus[coho_scales_berners$Age == 2]))) # not normal, about same
+eda.norm(asin(sqrt(coho_scales_hughsmith$Q2plus[coho_scales_hughsmith$Age == 1]))) #normal
+eda.norm(asin(sqrt(coho_scales_hughsmith$Q2plus[coho_scales_hughsmith$Age == 2]))) #almost normal, same
+
+eda.norm(asin(sqrt(coho_scales_berners$Q9abs[coho_scales_berners$Age == 1]))) # almost normal, worse
+eda.norm(asin(sqrt(coho_scales_berners$Q9abs[coho_scales_berners$Age == 2]))) # normal, worse
+eda.norm(asin(sqrt(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 1]))) # not normal, great improvement tho
+eda.norm(asin(sqrt(coho_scales_hughsmith$Q9abs[coho_scales_hughsmith$Age == 2]))) # normal
 
 #recommend transforming with arcsine square root. But first explore everything without transformations, save for last.
 
