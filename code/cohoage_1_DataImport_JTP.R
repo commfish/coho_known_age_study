@@ -70,9 +70,9 @@ coho_scales_long <- A2_JTP %>%
   filter(Circulus != "C1", Circulus != "C2", Age != 3) %>% # Drop C1 (dist from focus to C1), C2 (dist from C1 to C2), and age 3 fish (too few samples)
   arrange(Sample_ID, Circulus) %>% # Sort (order) the data by Sample_ID then Circulus
   mutate(PlusGrowth = ifelse(Zone == 1 | Zone == 2, paste0("Zone", Zone), "plusgrowth")) %>%
+  replace_na(list(PlusGrowth = "plusgrowth")) %>% # deal with NAs in the PlusGrowth column
   rename("Distance" = "Distance2") %>%
   drop_na("Distance") # remove rows with NAs for Distance
-
 
 rm(A1_JTP, A2_JTP)
 
