@@ -74,6 +74,7 @@ coho_scales_long <- A2_JTP %>%
   rename("Distance" = "Distance2") %>%
   drop_na("Distance") # remove rows with NAs for Distance
 
+
 rm(A1_JTP, A2_JTP)
 
 
@@ -166,7 +167,7 @@ j_JTP <- j_JTP %>%
 # If age 1 there must be zone 1 measurements also zone 2 is optional if plus is present. 
 # There must not be any zones but 1 or 2.
 # If age 2 there must be zone 1 and zone 2 measurements also zone 3 is optional if plus is present. 
-# There must not be any zones but 1 and 2 or 3.
+# There must not be any zones but 1 and 2 (or 3).
 
 j_JTP <- j_JTP %>% 
   mutate(Sum_Zones = ifelse(Zone1 > 0, 1, 0) + ifelse(Zone2 > 0, 1, 0),

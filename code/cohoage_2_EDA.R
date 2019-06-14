@@ -7,6 +7,7 @@ library(mvnormtest)
 library(HH)
 library(klaR)
 library(MASS)
+library(mgcv)
 library(mvoutlier)
 library(prabclus)
 
@@ -449,22 +450,22 @@ coho_scales_berners1 %>% group_by(Age, accuracy) %>% tally() %>% spread(accuracy
 
 
 library(mgcv)
-binomfit <- glm((Age-1)~Location+Q9abs+Q2plus, data=coho_scales_fulldata, family="binomial")
+binomfit <- glm((Age-1)~Location+Q2+Q9abs, data=coho_scales_bothriv, family="binomial")
 summary(binomfit)
 
-testpred5 <- expand.grid(Q9abs=seq(min(coho_scales_fulldata$Q9abs), max(coho_scales_fulldata$Q9abs), length.out = 100), 
-                         Q2plus=seq(min(coho_scales_fulldata$Q2plus), max(coho_scales_fulldata$Q2plus, na.rm = TRUE), length.out = 100),
+testpred5 <- expand.grid(Q9abs=seq(min(coho_scales_bothriv$Q9abs), max(coho_scales_bothriv$Q9abs), length.out = 100), 
+                         Q2=seq(min(coho_scales_bothriv$Q2), max(coho_scales_bothriv$Q2, na.rm = TRUE), length.out = 100),
                          Location=c("BR", "HS"))
 
 
 
-coho_scales_berners1 <- coho_scales_fulldata %>% filter(Location == "BR")
+coho_scales_berners1 <- coho_scales_bothriv %>% filter(Location == "BR")
 coho_scales_berners1 <- coho_scales_berners1 %>% 
   mutate(pred_binom = predict(binomfit, coho_scales_berners1, type = "response"),
          pred_age5 = ifelse(pred_binom > 0.5, 2, 1),
          accuracy = ifelse(pred_age5 == Age, "Correct", "Incorrect"))
 
-coho_scales_berners1 %>% group_by(Age, accuracy) %>% tally()
+coho_scales_berners1 %>% group_by(accuracy) %>% tally()
 
 
 coho_scales_hughsmith1 <- coho_scales_fulldata %>% filter(Location == "HS")
@@ -479,7 +480,6 @@ coho_scales_hughsmith1 %>% group_by(Age, accuracy) %>% tally()
 plot(fitted(binomfit), residuals(binomfit), xlab = "Fitted Values", ylab = "Residuals")
 abline(h=0, lty=2)
 lines(smooth.spline(fitted(binomfit), residuals(binomfit)))
-
 
 
 
@@ -510,16 +510,51 @@ boxcox(coho_scales_hughsmith$Age~coho_scales_hughsmith$Q2plus)
 boxcox(lm(Age~Q2plus, data=coho_scales_berners),lambda=seq(-10,1,by=.1))
 
 
-x <- runif(100, 1, 5)
-y <- x^3 + rnorm(100)
-plot(x,y)
-# run a linear model
-m <- lm(y ~ x)
 
-# run the box-cox transformation
-bc <- boxcox(y ~ x)
+
 
 #### FINAL SUMMARY #### 
 # Recommend using variables Q2plus and Q9abs to predict age
-# Use a QDA to address homoscedascity 
-# Transform data using arcsine sqrt
+# If using discriminate analysis, use a QDA to address homoscedascity 
+# Do not transform data 
+
+
+
+
+
+
+
+
+binomfit.hs <- glm((Age-1)~Q2+Q9abs, data=coho_scales_hughsmith, family="binomial")
+summary(binomfit.hs)
+
+coho_scales_berners2 <- coho_scales_bothriv %>% filter(Location == "BR")
+coho_scales_berners2 <- coho_scales_berners2 %>% 
+  mutate(pred_binom = predict(binomfit.hs, coho_scales_berners2, type = "response"),
+         pred_age5 = ifelse(pred_binom > 0.5, 2, 1),
+         accuracy = ifelse(pred_age5 == Age, "Correct", "Incorrect"))
+
+coho_scales_berners2 %>% group_by(accuracy) %>% tally()
+
+
+
+
+
+binomfit.br <- glm((Age-1)~Q2+Q9abs, data=coho_scales_berners, family="binomial")
+summary(binomfit.br)
+
+coho_scales_hughsmith2 <- coho_scales_bothriv %>% filter(Location == "HS")
+coho_scales_hughsmith2 <- coho_scales_hughsmith2 %>% 
+  mutate(pred_binom = predict(binomfit.br, coho_scales_hughsmith2, type = "response"),
+         pred_age5 = ifelse(pred_binom > 0.5, 2, 1),
+         accuracy = ifelse(pred_age5 == Age, "Correct", "Incorrect"))
+
+coho_scales_hughsmith2 %>% group_by(accuracy) %>% tally()
+
+
+
+
+
+
+
+
