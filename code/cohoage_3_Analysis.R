@@ -76,7 +76,7 @@ ggplot() +
   scale_fill_manual(name="Predicted\nAge", values = c("grey90", "grey95")) +
   scale_y_continuous(expand = c(0,0), limits = c(0.09, 0.72), breaks = c(seq(0.1, 0.7, by = 0.1))) + 
   scale_x_continuous(expand = c(0,0), limits = c(0.07, 0.23), breaks = c(seq(0.08, 0.2, by = 0.04))) +
-  ggtitle("A) Berners River")+ xlab ("Circulus 3 - Circulus 8 (mm)")+ylab("Circulus 3 - Scale Edge  (mm)") +
+  ggtitle("A) Berners River")+ xlab ("Circulus 3–Circulus 8 (mm)")+ylab("Circulus 3–Scale Edge  (mm)") +
   annotate("text", x = 0.19, y=0.13, label="predicted age 1", family="Times New Roman", colour="black", size=3) +
   annotate("text", x = 0.1, y=0.68, label="predicted age 2", family="Times New Roman", colour="black", size=3) +
   theme(legend.position="none", text=element_text(family="Times New Roman", size=12)) -> BRmodelpred
@@ -90,13 +90,13 @@ ggplot() +
   scale_fill_manual(name="Predicted\nAge", values = c("grey90", "grey95")) +
   scale_y_continuous(expand = c(0,0), limits = c(0.09, 0.72), breaks = c(seq(0.1, 0.7, by = 0.1))) + 
   scale_x_continuous(expand = c(0,0), limits = c(0.07, 0.23), breaks = c(seq(0.08, 0.2, by = 0.04))) +
-  ggtitle("B) Hugh Smith")+ xlab ("Circulus 3 - Circulus 8 (mm)") + ylab("Circulus 3 - Scale Edge  (mm)") +
+  ggtitle("B) Hugh Smith Lake")+ xlab ("Circulus 3–Circulus 8 (mm)") + ylab("Circulus 3–Scale Edge  (mm)") +
   annotate("text", x = 0.19, y=0.13, label="predicted age 1", family="Times New Roman", colour="black", size=3) +
   annotate("text", x = 0.1, y=0.68, label="predicted age 2", family="Times New Roman", colour="black", size=3) +
   theme(legend.position="none", text=element_text(family="Times New Roman", size=12)) -> HSmodelpred
 
 cowplot::plot_grid(BRmodelpred, HSmodelpred,  align = "h", nrow = 1, ncol=2) 
-#ggsave("figures/model_pred_binom.png", dpi = 500, height = 4 , width = 6, units = "in")
+ggsave("figures/model_pred_binom.png", dpi = 500, height = 4 , width = 6, units = "in")
 
 
 
