@@ -3,13 +3,10 @@ library(corrplot)
 library(GGally)
 library(here)
 library(mgcv)
-library(mvnormtest)
 library(HH)
 library(klaR)
 library(MASS)
-library(mgcv)
-library(mvoutlier)
-library(prabclus)
+
 
 # Run previous script to import data
 source(here::here("code/functions.R"))
@@ -20,7 +17,7 @@ source(here::here("code/cohoage_1_DataImport_JTP.R"))
 
 #----------------------------# 
 #### BEGIN EDA ####
-
+coho_scales_aukelake <- coho_scales_fulldata %>% filter(Location == "AL")
 
 # Correlation between variables
 for(q in c("HS", "BR", "AL")) { # Print a few correlation plots between variables
@@ -49,8 +46,8 @@ for(q in c("HS", "BR", "AL")) { # Print a few correlation plots between variable
 #Summary, clear correlation between close circuli variables
 
 
-#caution, this takes a while to eval! Uncomment to run
-#ggpairs(coho_scales_berners %>% dplyr::select("Zone1":"Count_Zone2", "Year", "Age":"Q10"))
+#caution, this takes a VERY long time to eval and might make R crash! Uncomment to run
+#GGally::ggpairs(coho_scales_berners %>% dplyr::select("Zone1":"Count_Zone2", "Year", "Age":"Q10"))
 
 
 # EDA SUMMARY ON VARIABLE SELECTION
@@ -80,6 +77,130 @@ summary(lm(Age ~ Length, data = coho_scales_berners))
 summary(lm(Age ~ Q2, data = coho_scales_berners))
 summary(lm(Age ~ Q9, data = coho_scales_berners))
 
+
+# --------------------------------------------#
+### Variable Selection ###
+
+# The first question is which variables to select. 
+
+coho_scales_berners1 <- coho_scales_berners %>%
+  mutate(Q5abs = Q5 * Q2, # This is the absolute distance from C3 thru C5)
+         Q6abs = Q6 * Q2, # This is the absolute distance from C3 thru C6)
+         Q7abs = Q7 * Q2, # This is the absolute distance from C3 thru C7)
+         Q8abs = Q8 * Q2, # This is the absolute distance from C3 thru C8)
+         Q10abs = Q10 * Q2, # This is the absolute distance from C3 thru C10)
+         Q11abs = Q11 * Q2, # This is the absolute distance from C3 thru C11)
+         Q12abs = Q12 * Q2, # This is the absolute distance from C3 thru C12)
+         Q13abs = Q13 * Q2) # This is the absolute distance from C3 thru C13)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q1)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q2)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q3)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q4)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q5abs)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q6abs)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q7abs)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q8abs)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q9abs)
+cor(coho_scales_berners1$Age, coho_scales_berners1$Q10abs)
+
+cor(coho_scales_berners1$Q2, coho_scales_berners1$Q1)# too correlated
+cor(coho_scales_berners1$Q2, coho_scales_berners1$Q3)
+cor(coho_scales_berners1$Q2, coho_scales_berners1$Q4) # too correlated
+cor(coho_scales_berners1$Q2, coho_scales_berners1$Q5abs)
+cor(coho_scales_berners1$Q2, coho_scales_berners1$Q6abs)
+cor(coho_scales_berners1$Q2, coho_scales_berners1$Q7abs)
+cor(coho_scales_berners1$Q2, coho_scales_berners1$Q8abs)
+cor(coho_scales_berners1$Q2, coho_scales_berners1$Q9abs)
+cor(coho_scales_berners1$Q2, coho_scales_berners1$Q10abs)
+
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2, family = "binomial"))$aic
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2 + Q3, family = "binomial"))$aic
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2 + Q5abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2 + Q6abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2 + Q7abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2 + Q8abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2 + Q9abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2 + Q10abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2 + Q11abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_berners1, (Age-1) ~ Q2 + Q12abs, family = "binomial"))$aic
+
+
+coho_scales_hughsmith1 <- coho_scales_hughsmith %>%
+  mutate(Q5abs = Q5 * Q2, # This is the absolute distance from C3 thru C5)
+         Q6abs = Q6 * Q2, # This is the absolute distance from C3 thru C6)
+         Q7abs = Q7 * Q2, # This is the absolute distance from C3 thru C7)
+         Q8abs = Q8 * Q2, # This is the absolute distance from C3 thru C8)
+         Q10abs = Q10 * Q2, # This is the absolute distance from C3 thru C10)
+         Q11abs = Q11 * Q2, # This is the absolute distance from C3 thru C11)
+         Q12abs = Q12 * Q2, # This is the absolute distance from C3 thru C12)
+         Q13abs = Q13 * Q2) # This is the absolute distance from C3 thru C13)
+
+# Confirm similar starting variable to Berners (Q2)
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q1) # This performs better
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q2)
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q3)
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q4)
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q5abs)
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q6abs)
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q7abs)
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q8abs)
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q9abs)
+cor(coho_scales_hughsmith1$Age, coho_scales_hughsmith1$Q10abs)
+
+cor(coho_scales_hughsmith1$Q2, coho_scales_hughsmith1$Q1)# too correlated
+cor(coho_scales_hughsmith1$Q2, coho_scales_hughsmith1$Q3)
+cor(coho_scales_hughsmith1$Q2, coho_scales_hughsmith1$Q4) # too correlated
+cor(coho_scales_hughsmith1$Q2, coho_scales_hughsmith1$Q5abs)
+cor(coho_scales_hughsmith1$Q2, coho_scales_hughsmith1$Q6abs)
+cor(coho_scales_hughsmith1$Q2, coho_scales_hughsmith1$Q7abs)
+cor(coho_scales_hughsmith1$Q2, coho_scales_hughsmith1$Q8abs)
+cor(coho_scales_hughsmith1$Q2, coho_scales_hughsmith1$Q9abs)
+cor(coho_scales_hughsmith1$Q2, coho_scales_hughsmith1$Q10abs)
+
+
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q1, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q1 + Q3, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q1 + Q9abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2 + Q3, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2 + Q5abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2 + Q6abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2 + Q7abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2 + Q8abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2 + Q9abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2 + Q10abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2 + Q11abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_hughsmith1, (Age-1) ~ Q2 + Q12abs, family = "binomial"))$aic
+
+
+
+
+
+coho_scales_bothriv1 <- coho_scales_bothriv %>%
+  mutate(Q5abs = Q5 * Q2, # This is the absolute distance from C3 thru C5)
+         Q6abs = Q6 * Q2, # This is the absolute distance from C3 thru C6)
+         Q7abs = Q7 * Q2, # This is the absolute distance from C3 thru C7)
+         Q8abs = Q8 * Q2, # This is the absolute distance from C3 thru C8)
+         Q10abs = Q10 * Q2, # This is the absolute distance from C3 thru C10)
+         Q11abs = Q11 * Q2, # This is the absolute distance from C3 thru C11)
+         Q12abs = Q12 * Q2, # This is the absolute distance from C3 thru C12)
+         Q13abs = Q13 * Q2)
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q1, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2 + Q3, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q1 + Q3, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q1 + Q5abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2 + Q5abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2 + Q6abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2 + Q7abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2 + Q8abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2 + Q9abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2 + Q10abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2 + Q11abs, family = "binomial"))$aic
+summary(glm(data=coho_scales_bothriv1, (Age-1) ~ Location + Q2 + Q12abs, family = "binomial"))$aic
+
+# Summary: Recommend using variables Q2 and Q9abs. Best overall for both sites. 
+# And final model of accuracy showed that Q9abs had higher accuracy than Q10abs
 
 # --------------------------------------------#
 ### Correlation ###
@@ -264,7 +385,7 @@ ggplot(coho_scales_fulldata %>% filter(Age == 2), aes(Length, Q9)) +
 # Very large differences between locations (model will need to account for location)
 # Many of the variables are approximately normal but fail the 'strict' conditions of tests
 # Variance is not even between Age 1 & 2
-# It appears that the higher numbered Q variables are not as good of a fit. 
+# It appears that the higher numbered Q variables are not a good fit. 
 # Explore further with Q variables <Q12 or so.
 # There is clear violation of homogeneity of variance by age.
 # Some moderate MVN violations, especially for age-1 fish
@@ -273,7 +394,10 @@ ggplot(coho_scales_fulldata %>% filter(Age == 2), aes(Length, Q9)) +
 # According to LW, scale distance (including plus growth), is good proxy for length
 # I have added this as variable "Q2plus"; to reduce multi-collinearity, I used the 
 # absolute distance to Circuli 8 (Q9abs), instead of relative distance to Circuli 8 (Q9)
-# Thus, I recommend using top model as Age ~ Q9abs + Q2plus
+# After extensive testing with the final model and returning to this EDA,
+# Q2plus performs moderately worse than Q2. Recommend using Q2
+# So recommend using the top model of: Age ~ Q2 + Q9abs
+
 
 
 # --------------------------------------------#
@@ -468,7 +592,7 @@ coho_scales_berners1 <- coho_scales_berners1 %>%
 coho_scales_berners1 %>% group_by(accuracy) %>% tally()
 
 
-coho_scales_hughsmith1 <- coho_scales_fulldata %>% filter(Location == "HS")
+coho_scales_hughsmith1 <- coho_scales_bothriv %>% filter(Location == "HS")
 coho_scales_hughsmith1 <- coho_scales_hughsmith1 %>% 
   mutate(pred_binom = predict(binomfit, coho_scales_hughsmith1, type = "response"),
          pred_age5 = ifelse(pred_binom > 0.5, 2, 1),

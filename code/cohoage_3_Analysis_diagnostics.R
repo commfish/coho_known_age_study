@@ -7,7 +7,7 @@ library(MASS)
 library(FNGr) #devtools::install_github("ben-williams/FNGr") 
 library(cowplot)
 library(extrafont)
-library(rcompanion)
+#library(rcompanion)
 library(mgcv)
 library(car)
 library(modEvA) #pseudo-R squared
