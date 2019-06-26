@@ -87,7 +87,7 @@ lm_out %>% #Cook's distance plot
   augment(A2) %>% 
   mutate(cooksd = (.cooksd),
          count = 1:3117,
-         name= ifelse(cooksd >0.011, count, "")) %>% #this displays cooks distances>0.011 (this can be changed)
+         name= ifelse(cooksd >0.05, count, "")) %>% #this displays cooks distances>0.011 (this can be changed)
   ggplot(aes(x = count, y = cooksd, label=name)) +
   geom_bar(stat = "identity", colour = "grey50", 
            fill = "lightgrey",alpha=.7,
@@ -100,7 +100,7 @@ lm_out %>% #leverage plot
   augment(A2) %>% 
   mutate(hat= (.hat),
          count = 1:3117,
-         name= ifelse(hat >0.01, count, "")) %>% 
+         name= ifelse(hat >0.05, count, "")) %>% 
   ggplot(aes(x = count, y = hat, label=name)) +
   geom_bar(stat = "identity", colour = "grey50", 
            fill = "lightgrey",alpha=.7,
