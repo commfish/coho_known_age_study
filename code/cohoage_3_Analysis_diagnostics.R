@@ -87,7 +87,7 @@ lm_out %>% #Cook's distance plot
   augment(A2) %>% 
   mutate(cooksd = (.cooksd),
          count = 1:3117,
-         name= ifelse(cooksd >0.05, count, "")) %>% #this displays cooks distances>0.011 (this can be changed)
+         name= ifelse(cooksd >0.02, count, "")) %>% #this displays cooks distances>0.011 (this can be changed)
   ggplot(aes(x = count, y = cooksd, label=name)) +
   geom_bar(stat = "identity", colour = "grey50", 
            fill = "lightgrey",alpha=.7,
@@ -100,7 +100,7 @@ lm_out %>% #leverage plot
   augment(A2) %>% 
   mutate(hat= (.hat),
          count = 1:3117,
-         name= ifelse(hat >0.05, count, "")) %>% 
+         name= ifelse(hat >0.015, count, "")) %>% 
   ggplot(aes(x = count, y = hat, label=name)) +
   geom_bar(stat = "identity", colour = "grey50", 
            fill = "lightgrey",alpha=.7,
@@ -120,7 +120,7 @@ lm_out %>% #Pearson by index
   scale_y_continuous(breaks = seq(-3, 3, 0.5), limits = c(-3,3)) +
   labs(y = "Pearson residuals", x =  "Index") -> plot6
 cowplot::plot_grid(plot1, plot2, plot3, plot4, plot5, plot6,  align = "vh", nrow = 3, ncol=2)
-#ggsave("figures/glm_diagnostics.png", dpi = 500, height = 6, width = 8, units = "in")
+ggsave("figures/glm_diagnostics.png", dpi = 500, height = 6, width = 8, units = "in")
 
 #Residual plots as above
 binom <- glm.diag(binomfit)
