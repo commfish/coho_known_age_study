@@ -20,8 +20,7 @@ source(here::here("code/cohoage_1_DataImport_JTP.R"))
 
 
 #Generalized Linear Models Diagnostics https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4885900/
-coho_scales_fulldata <- coho_scales_fulldata %>% filter(Location != "AL")
-binomfit <- glm((Age-1)~Location+Q9abs+Q2, data=coho_scales_fulldata, family="binomial")
+binomfit <- glm((Age-1)~Location+Q9abs+Q2, data=coho_scales_bothriv, family="binomial")
 summary(binomfit)
 Anova(binomfit)
 RsqGLM(binomfit)#peudo R2 
