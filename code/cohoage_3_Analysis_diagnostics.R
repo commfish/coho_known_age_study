@@ -20,6 +20,7 @@ source(here::here("code/cohoage_1_DataImport_JTP.R"))
 
 
 #Generalized Linear Models Diagnostics https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4885900/
+coho_scales_fulldata <- coho_scales_fulldata %>% filter(Location != "AL")
 binomfit <- glm((Age-1)~Location+Q9abs+Q2, data=coho_scales_fulldata, family="binomial")
 summary(binomfit)
 Anova(binomfit)
@@ -86,7 +87,7 @@ lm_out %>% #Pearson residuals against fitted
 lm_out %>% #Cook's distance plot
   augment(A2) %>% 
   mutate(cooksd = (.cooksd),
-         count = 1:3117,
+         count = 1:2819,
          name= ifelse(cooksd >0.02, count, "")) %>% #this displays cooks distances>0.011 (this can be changed)
   ggplot(aes(x = count, y = cooksd, label=name)) +
   geom_bar(stat = "identity", colour = "grey50", 
@@ -99,7 +100,7 @@ lm_out %>% #Cook's distance plot
 lm_out %>% #leverage plot
   augment(A2) %>% 
   mutate(hat= (.hat),
-         count = 1:3117,
+         count = 1:2819,
          name= ifelse(hat >0.015, count, "")) %>% 
   ggplot(aes(x = count, y = hat, label=name)) +
   geom_bar(stat = "identity", colour = "grey50", 
@@ -112,7 +113,7 @@ lm_out %>% #leverage plot
 lm_out %>% #Pearson by index
   augment(A2) %>% 
   mutate(resid = (.resid),
-         count = 1:3117) %>% 
+         count = 1:2819) %>% 
   ggplot(aes(x = count, y = resid)) +
   geom_bar(stat = "identity", colour = "grey50", 
            fill = "lightgrey",alpha=.7,
