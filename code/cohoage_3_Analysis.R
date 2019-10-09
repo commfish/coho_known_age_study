@@ -96,7 +96,7 @@ ggplot() +
   theme(legend.position="none", text=element_text(family="Times New Roman", size=12)) -> HSmodelpred
 
 cowplot::plot_grid(BRmodelpred, HSmodelpred,  align = "h", nrow = 1, ncol=2) 
-ggsave("figures/model_pred_binom.png", dpi = 500, height = 4 , width = 6, units = "in")
+#ggsave("figures/model_pred_binom.png", dpi = 500, height = 4 , width = 6, units = "in")
 
 
 

@@ -19,6 +19,7 @@ loadfonts(device="win") #change for mac users
 
 
 # Import analysis script (which calls data import)
+# If there is an error here, make sure ggsave is commented out everywhere
 source(here::here("code/cohoage_3_Analysis.R"))
 
 #formatting numbers function
