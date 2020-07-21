@@ -28,21 +28,23 @@ cplot(binomfit, "Q9abs")
 cplot(binomfit, "Q2")
 
 #https://socviz.co/modeling.html
-binomfit <- glm((Age-1)~Location+Q2+Q9abs, data=coho_scales_bothriv, family="binomial")
-lm(formula = lifeExp ~ gdpPercap + pop + continent, data = gapminder)
-min_gdp <- min(coho_scales_bothriv$Q9abs)
-max_gdp <- max(coho_scales_bothriv$Q9abs)
-med_pop <- median(coho_scales_bothriv$Q2)
+coho_scales_fulldata <- coho_scales_fulldata %>% filter(Location != "AL")
+coho_scales_fulldata <- coho_scales_fulldata %>% filter(Location == "HS")
+binomfit <- glm((Age-1)~Q9abs+Q2, data=coho_scales_fulldata, family="binomial")
+#lm(formula = lifeExp ~ gdpPercap + pop + continent, data = gapminder)
+min_Q9abs <- min(coho_scales_fulldata$Q9abs)
+max_Q9abs <- max(coho_scales_fulldata$Q9abs)
+med_Q2 <- median(coho_scales_fulldata$Q2)
 
-pred_df <- expand.grid(Q9abs = (seq(from = min_gdp,
-                                        to = max_gdp,
+pred_df <- expand.grid(Q9abs = (seq(from = min_Q9abs,
+                                        to = max_Q9abs,
                                         length.out = 100)),
-                       Q2 = med_pop,
-                       Location = c("HS", "BR"))
+                       Q2 = med_Q2)
 
 pred_out <- predict(object = binomfit,
                     newdata = pred_df,
                     interval = "predict")
+head(pred_out)
 pred_df <- cbind(pred_df, pred_out)
 p <- ggplot(data = subset(pred_df, Location %in% c("HS", "BR")),
             aes(x = Q9abs,
@@ -60,3 +62,29 @@ p + geom_point(data = subset(coho_scales_bothriv,
   geom_line() +
   geom_ribbon(alpha = 0.2, color = FALSE) +
   scale_x_log10(labels = scales::dollar)
+
+
+predicted.data <- expand.grid(Q9abs=seq(min(coho_scales_bothriv$Q9abs), max(coho_scales_bothriv$Q9abs), length.out = 20), 
+                              Q2=median(coho_scales_bothriv$Q2))
+predicted.data <- cbind(predicted.data, predict(binomfit, newdata = predicted.data, # Predict the fitted values given the model and hypothetical data
+                                                type="link", se=TRUE))
+
+
+
+
+new.data <- cbind(data, predicted.data)# Combine the hypothetical data and predicted values
+std <- qnorm(0.95 / 2 + 0.5)# Calculate confidence intervals
+new.data$ymin <- binomfit$family$linkinv(new.data$fit - std * new.data$se)
+new.data$ymax <- binomfit$family$linkinv(new.data$fit + std * new.data$se)
+new.data$fit <- binomfit$family$linkinv(new.data$fit)  # Rescale to 0-1
+
+coho_scales_fulldata %>% 
+  ggplot(aes(x=Q9abs, y=Age-1)) +
+  geom_point() + 
+  geom_ribbon(data=new.data, aes(y=fit, ymin=ymin, ymax=ymax), alpha=0.5) + 
+  geom_line(data=new.data, aes(y=fit)) + 
+  labs(x="Q9abs", y="Age") + 
+  scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4,0.5), limits = c(0, 0.5)) +
+  scale_y_continuous(breaks = c(0, 0.2, 0.4, 0.6, 0.8,1.0), limits = c(0, 1.0))
+
+visreg(binomfit)
